@@ -58,7 +58,7 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("http://localhost:3001/api/user/profile", {
+        const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -83,7 +83,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/user/profile", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/user/change-password", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/change-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

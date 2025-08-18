@@ -77,7 +77,7 @@ export default function AdminPaymentsPage() {
         queryParams.append("dateFilter", dateFilter)
       }
 
-      const url = `http://localhost:3001/api/admin/payments?${queryParams.toString()}`
+      const url = `https://backend-swimming-pool.onrender.com/api/admin/payments?${queryParams.toString()}`
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -96,7 +96,7 @@ export default function AdminPaymentsPage() {
   const fetchUserCategories = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/admin/user-categories", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/user-categories", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -112,7 +112,7 @@ export default function AdminPaymentsPage() {
   const fetchLockerPrice = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/settings/locker_price", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/locker_price", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -129,7 +129,7 @@ export default function AdminPaymentsPage() {
   const handleUpdateLockerPrice = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/settings/locker_price", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/locker_price", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -174,7 +174,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/admin/user-categories/${selectedCategory.id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -230,7 +230,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/admin/payments/${selectedPayment.id}/confirm`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

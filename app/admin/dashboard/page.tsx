@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
         const token = localStorage.getItem("token")
         
         // Fetch dashboard stats
-        const response = await fetch("http://localhost:3001/api/admin/dashboard", {
+        const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch recent reservations
-        const reservationsResponse = await fetch("http://localhost:3001/api/admin/reservations", {
+        const reservationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reservations", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch notifications
-        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -131,7 +131,7 @@ export default function AdminDashboardPage() {
     
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/admin/notifications", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +165,7 @@ export default function AdminDashboardPage() {
         setNotifications([newNotificationObj])
         
         // Also refresh from server
-        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -192,7 +192,7 @@ export default function AdminDashboardPage() {
   const handleDeleteNotification = async (notificationId: number) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/admin/notifications/${notificationId}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${notificationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -207,7 +207,7 @@ export default function AdminDashboardPage() {
         setNotifications(prev => prev.filter(n => n.id !== notificationId))
         
         // Also refresh from server
-        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         

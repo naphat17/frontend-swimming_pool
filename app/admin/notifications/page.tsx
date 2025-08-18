@@ -70,7 +70,7 @@ export default function AdminNotificationsPage() {
       const token = localStorage.getItem("token");
       const query = new URLSearchParams();
       if (filter !== "all") query.append("is_read", filter);
-      const res = await fetch(`http://localhost:3001/api/admin/notifications?${query.toString()}`, {
+      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -109,7 +109,7 @@ export default function AdminNotificationsPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:3001/api/admin/users?role=user", {
+      const res = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users?role=user", {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
@@ -123,7 +123,7 @@ export default function AdminNotificationsPage() {
     e.preventDefault()
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:3001/api/admin/notifications", {
+      const res = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -148,7 +148,7 @@ export default function AdminNotificationsPage() {
   const updateRead = async (id: number, is_read: boolean) => {
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:3001/api/admin/notifications/${id}/read`, {
+      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${id}/read`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_read }),
@@ -161,7 +161,7 @@ export default function AdminNotificationsPage() {
     if (!confirm("ต้องการลบการแจ้งเตือนนี้หรือไม่?")) return
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`http://localhost:3001/api/admin/notifications/${id}`, {
+      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

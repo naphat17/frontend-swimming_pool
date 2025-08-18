@@ -73,7 +73,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/admin/settings", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -105,7 +105,7 @@ export default function AdminSettingsPage() {
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/admin/membership-types", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -128,7 +128,7 @@ export default function AdminSettingsPage() {
         setting_value: value,
       }))
 
-      const response = await fetch("http://localhost:3001/api/admin/settings", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -164,7 +164,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/admin/membership-types", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -209,7 +209,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/admin/membership-types/${editingMembership.id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/membership-types/${editingMembership.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

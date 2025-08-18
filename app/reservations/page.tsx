@@ -99,7 +99,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const dashboardResponse = await fetch("http://localhost:3001/api/user/dashboard", {
+      const dashboardResponse = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       })
       
@@ -116,7 +116,7 @@ export default function ReservationsPage() {
         console.error("Reservations - Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
       }
 
-      const categoriesResponse = await fetch("http://localhost:3001/api/memberships/categories")
+      const categoriesResponse = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
       if (categoriesResponse.ok) {
         const categoriesData = await categoriesResponse.json()
         setUserCategories(categoriesData.categories)
@@ -138,7 +138,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("http://localhost:3001/api/reservations/user", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -162,7 +162,7 @@ export default function ReservationsPage() {
 
   const fetchPools = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/pools/status")
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/pools/status")
       if (response.ok) {
         const data = await response.json()
         setPools(data.pools || [])
@@ -174,7 +174,7 @@ export default function ReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/settings/bank_account_number")
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
@@ -220,7 +220,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("http://localhost:3001/api/reservations", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,7 +242,7 @@ export default function ReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`http://localhost:3001/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -304,7 +304,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch(`http://localhost:3001/api/reservations/${reservationId}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

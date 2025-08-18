@@ -54,7 +54,7 @@ export default function AdminMembershipsPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      let url = "http://localhost:3001/api/admin/memberships"
+      let url = "https://backend-swimming-pool.onrender.com/api/admin/memberships"
       if (status && status !== "all") url += `?status=${status}`
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       if (res.ok) {
@@ -68,7 +68,7 @@ export default function AdminMembershipsPage() {
 
   const fetchPayments = async () => {
     const token = localStorage.getItem("token")
-    const res = await fetch("http://localhost:3001/api/admin/payments", {
+    const res = await fetch("https://backend-swimming-pool.onrender.com/api/admin/payments", {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) {
@@ -81,7 +81,7 @@ export default function AdminMembershipsPage() {
 
   const handleApprove = async (id: number) => {
     const token = localStorage.getItem("token")
-    const res = await fetch(`http://localhost:3001/api/admin/memberships/${id}/approve`, {
+    const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/memberships/${id}/approve`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -92,7 +92,7 @@ export default function AdminMembershipsPage() {
   }
   const handleReject = async (id: number) => {
     const token = localStorage.getItem("token")
-    const res = await fetch(`http://localhost:3001/api/admin/memberships/${id}/reject`, {
+    const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/memberships/${id}/reject`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -104,7 +104,7 @@ export default function AdminMembershipsPage() {
   const handleDelete = async (id: number) => {
     if (!confirm("ยืนยันการลบสมาชิกภาพนี้?")) return
     const token = localStorage.getItem("token")
-    const res = await fetch(`http://localhost:3001/api/admin/memberships/${id}`, {
+    const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/memberships/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -121,7 +121,7 @@ export default function AdminMembershipsPage() {
   const handleEditSave = async () => {
     if (!selected) return
     const token = localStorage.getItem("token")
-    const res = await fetch(`http://localhost:3001/api/admin/memberships/${selected.id}`, {
+    const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/memberships/${selected.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(editData),

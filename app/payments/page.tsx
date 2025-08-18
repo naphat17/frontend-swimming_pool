@@ -33,7 +33,7 @@ export default function PaymentsPage() {
     const fetchPayments = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("http://localhost:3001/api/payments/user", {
+        const response = await fetch("https://backend-swimming-pool.onrender.com/api/payments/user", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -54,7 +54,7 @@ export default function PaymentsPage() {
   const handleDownloadReceipt = async (paymentId: number) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/payments/${paymentId}/receipt`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${paymentId}/receipt`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
