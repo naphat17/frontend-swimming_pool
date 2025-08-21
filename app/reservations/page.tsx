@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Plus, Trash2, MapPin, Users, CreditCard, CheckCircle, XCircle, AlertCircle, Sparkles, Waves, Crown, Shield, Gift, Check } from "lucide-react"
+import { Calendar, Clock, Plus, Trash2, MapPin, Users, CreditCard, CheckCircle, XCircle, AlertCircle, Sparkles, Waves, Crown, Shield, Gift, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ interface Reservation {
   pool_name: string
   status: string
   notes?: string
+  created_at?: string
 }
 
 interface Pool {
@@ -47,6 +48,7 @@ interface UserMembership {
   user_category: string
   pay_per_session_price: number
   annual_price: number
+  membership_type_id: number
 }
 
 interface UserCategory {
@@ -55,6 +57,21 @@ interface UserCategory {
   description: string
   pay_per_session_price: number
   annual_price: number
+}
+
+interface BookingStats {
+  date: string
+  total_bookings: number
+  available_slots: number
+  pool_id: number
+}
+
+interface CalendarDay {
+  date: string
+  day: number
+  isCurrentMonth: boolean
+  isToday: boolean
+  bookingStats?: BookingStats
 }
 
 export default function ReservationsPage() {
@@ -74,6 +91,12 @@ export default function ReservationsPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null)
   const slipInputRef = useRef<HTMLInputElement>(null)
   const [bankAccountNumber, setBankAccountNumber] = useState("")
+  
+  // Calendar states
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [calendarData, setCalendarData] = useState<CalendarDay[]>([])
+  const [selectedPoolForCalendar, setSelectedPoolForCalendar] = useState<string>("")
+  const [calendarLoading, setCalendarLoading] = useState(false)
 
   const maxDate = new Date()
   maxDate.setDate(maxDate.getDate() + 7)
@@ -90,6 +113,30 @@ export default function ReservationsPage() {
     fetchData()
   }, [])
 
+  // Fetch calendar data when pool is selected
+  useEffect(() => {
+    if (selectedPoolForCalendar) {
+      fetchCalendarData(selectedPoolForCalendar, currentDate)
+    }
+  }, [selectedPoolForCalendar])
+
+  // Set default pool for calendar when pools are loaded
+  useEffect(() => {
+    if (pools.length > 0 && !selectedPoolForCalendar) {
+      const availablePool = pools.find(pool => pool.status === 'available')
+      if (availablePool) {
+        setSelectedPoolForCalendar(availablePool.id.toString())
+      }
+    }
+  }, [pools])
+
+  // Generate initial calendar data when component mounts
+  useEffect(() => {
+    if (calendarData.length === 0) {
+      generateCalendarDays(currentDate, [])
+    }
+  }, [])
+
   const fetchUserMembershipAndCategories = async () => {
     try {
       const token = localStorage.getItem("token")
@@ -99,7 +146,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const dashboardResponse = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
+      const dashboardResponse = await fetch("http://localhost:3001/api/user/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       })
       
@@ -116,7 +163,7 @@ export default function ReservationsPage() {
         console.error("Reservations - Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
       }
 
-      const categoriesResponse = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
+      const categoriesResponse = await fetch("http://localhost:3001/api/memberships/categories")
       if (categoriesResponse.ok) {
         const categoriesData = await categoriesResponse.json()
         setUserCategories(categoriesData.categories)
@@ -138,7 +185,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations/user", {
+      const response = await fetch("http://localhost:3001/api/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -162,7 +209,7 @@ export default function ReservationsPage() {
 
   const fetchPools = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/pools/status")
+      const response = await fetch("http://localhost:3001/api/pools/status")
       if (response.ok) {
         const data = await response.json()
         setPools(data.pools || [])
@@ -174,13 +221,87 @@ export default function ReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+      const response = await fetch("http://localhost:3001/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
       }
     } catch (error) {
       console.error("Error fetching bank account number:", error)
+    }
+  }
+
+  const fetchCalendarData = async (poolId: string, date: Date) => {
+    if (!poolId) return
+    
+    setCalendarLoading(true)
+    try {
+      const year = date.getFullYear()
+      const month = date.getMonth() + 1
+      
+      const response = await fetch(`/api/pools/${poolId}/bookings/stats?year=${year}&month=${month}`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Calendar API response:', data)
+        generateCalendarDays(date, data || [])
+      } else {
+        console.error("Failed to fetch calendar data:", response.status)
+        generateCalendarDays(date, [])
+      }
+    } catch (error) {
+      console.error("Error fetching calendar data:", error)
+      generateCalendarDays(date, [])
+    } finally {
+      setCalendarLoading(false)
+    }
+  }
+
+  const generateCalendarDays = (date: Date, bookingStats: BookingStats[]) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startDate = new Date(firstDay)
+    startDate.setDate(startDate.getDate() - firstDay.getDay())
+    
+    const days: CalendarDay[] = []
+    // ใช้เวลาประเทศไทย (UTC+7) สำหรับวันนี้
+    const today = new Date()
+    const thailandToday = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}))
+    
+    for (let i = 0; i < 42; i++) {
+      const currentDate = new Date(startDate)
+      currentDate.setDate(startDate.getDate() + i)
+      
+      // สร้าง dateString โดยตรงจากวันที่ปฏิทินเพื่อให้ตรงกับฐานข้อมูล
+      const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
+      const stats = bookingStats.find(stat => stat.date === dateString)
+      
+      // เปรียบเทียบวันที่โดยใช้ dateString เพื่อความแม่นยำ
+      const todayString = `${thailandToday.getFullYear()}-${String(thailandToday.getMonth() + 1).padStart(2, '0')}-${String(thailandToday.getDate()).padStart(2, '0')}`
+      
+      days.push({
+        date: dateString,
+        day: currentDate.getDate(),
+        isCurrentMonth: currentDate.getMonth() === month,
+        isToday: dateString === todayString,
+        bookingStats: stats
+      })
+    }
+    
+    setCalendarData(days)
+  }
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate)
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1)
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1)
+    }
+    setCurrentDate(newDate)
+    if (selectedPoolForCalendar) {
+      fetchCalendarData(selectedPoolForCalendar, newDate)
     }
   }
 
@@ -199,7 +320,7 @@ export default function ReservationsPage() {
     setSubmitting(true)
 
     const currentUserCategory = userCategories.find(cat => cat.name === userMembership?.user_category);
-    const isAnnualMember = userMembership?.status === 'active' && userMembership?.type === 'Annual';
+    const isAnnualMember = userMembership?.status === 'active' && userMembership?.membership_type_id === 2;
     const requiresPayment = !isAnnualMember;
     let paymentAmount = 0;
 
@@ -220,7 +341,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations", {
+      const response = await fetch("http://localhost:3001/api/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,7 +363,7 @@ export default function ReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`http://localhost:3001/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -304,7 +425,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/reservations/${reservationId}`, {
+      const response = await fetch(`http://localhost:3001/api/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -457,7 +578,7 @@ export default function ReservationsPage() {
                       <div>
                         <p className="text-sm text-blue-100">หมดอายุ</p>
                         <p className="text-lg font-semibold">
-                          {new Date(userMembership.expires_at).toLocaleDateString("th-TH")}
+                          {userMembership.expires_at && userMembership.expires_at !== 'null' && userMembership.expires_at.trim() !== '' ? new Date(userMembership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
                         </p>
                       </div>
                     </div>
@@ -552,7 +673,7 @@ export default function ReservationsPage() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {userMembership.status === 'active' && userMembership.type === 'Annual' ? (
+                          {userMembership.status === 'active' && userMembership.membership_type_id === 2 ? (
                             <div className="flex items-center space-x-3 p-3 bg-green-100 rounded-lg">
                               <CheckCircle className="h-6 w-6 text-green-600" />
                               <div>
@@ -660,14 +781,198 @@ export default function ReservationsPage() {
               </Dialog>
             </div>
 
-            {/* Reservations List - Similar to membership page layout */}
+            {/* Pool Booking Calendar Section */}
+            <div className="space-y-8">
+              <div className="text-center space-y-4">
+                <h2 className="text-3xl font-bold text-gray-900">ปฏิทินการจองสระว่ายน้ำ</h2>
+                <p className="text-gray-600">ดูจำนวนการจองและที่ว่างเหลือของแต่ละวัน</p>
+              </div>
+              
+              <Card className="max-w-6xl mx-auto border-0 shadow-xl bg-gradient-to-br from-blue-50 to-purple-50">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-white/20 rounded-full">
+                        <Calendar className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl font-bold">ปฏิทินการจอง</CardTitle>
+                        <CardDescription className="text-blue-100">
+                          เลือกสระและดูข้อมูลการจองรายวัน
+                        </CardDescription>
+                      </div>
+                    </div>
+                    
+                    {/* Pool Selector */}
+                    <div className="flex items-center space-x-3">
+                      <Label className="text-white font-medium">เลือกสระ:</Label>
+                      <Select value={selectedPoolForCalendar} onValueChange={setSelectedPoolForCalendar}>
+                        <SelectTrigger className="w-48 bg-white/20 border-white/30 text-white">
+                          <SelectValue placeholder="เลือกสระ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pools
+                            .filter((pool) => pool.status === "available")
+                            .map((pool) => (
+                              <SelectItem key={pool.id} value={pool.id.toString()}>
+                                <div className="flex items-center space-x-2">
+                                  <MapPin className="h-4 w-4 text-blue-600" />
+                                  <span>{pool.name}</span>
+                                  <span className="text-gray-500">
+                                    (<Users className="h-3 w-3 inline mr-1" />{pool.capacity} คน)
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="p-6">
+                  {/* Calendar Navigation */}
+                  <div className="flex items-center justify-between mb-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigateMonth('prev')}
+                      className="flex items-center space-x-2 hover:bg-blue-50 border-blue-200"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>เดือนก่อน</span>
+                    </Button>
+                    
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {currentDate.toLocaleDateString('th-TH', { 
+                        year: 'numeric', 
+                        month: 'long' 
+                      })}
+                    </h3>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => navigateMonth('next')}
+                      className="flex items-center space-x-2 hover:bg-blue-50 border-blue-200"
+                    >
+                      <span>เดือนถัดไป</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Calendar Grid */}
+                  {calendarLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="relative">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent absolute top-0 left-0"></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Calendar Header */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((day) => (
+                          <div key={day} className="text-center font-semibold text-gray-600 py-2">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Calendar Days */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {calendarData.map((day, index) => (
+                          <div
+                            key={index}
+                            className={`
+                              relative p-3 rounded-lg border transition-all duration-200 hover:shadow-md
+                              ${
+                                day.isCurrentMonth
+                                  ? day.isToday
+                                    ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white border-blue-500'
+                                    : 'bg-white border-gray-200 hover:border-blue-300'
+                                  : 'bg-gray-50 text-gray-400 border-gray-100'
+                              }
+                            `}
+                          >
+                            <div className="text-sm font-medium mb-1">{day.day}</div>
+                            
+                            {day.isCurrentMonth && day.bookingStats && (
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className={day.isToday ? 'text-blue-100' : 'text-blue-600'}>จอง:</span>
+                                  <span className={`font-bold ${
+                                    day.isToday ? 'text-white' : 'text-blue-800'
+                                  }`}>
+                                    {day.bookingStats.total_bookings}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className={day.isToday ? 'text-green-100' : 'text-green-600'}>ว่าง:</span>
+                                  <span className={`font-bold ${
+                                    day.isToday ? 'text-white' : 'text-green-800'
+                                  }`}>
+                                    {day.bookingStats.available_slots}
+                                  </span>
+                                </div>
+                                
+                                {/* Availability indicator */}
+                                <div className={`w-full h-1 rounded-full ${
+                                  day.bookingStats.available_slots === 0
+                                    ? 'bg-red-400'
+                                    : day.bookingStats.available_slots <= 5
+                                    ? 'bg-yellow-400'
+                                    : 'bg-green-400'
+                                }`}></div>
+                              </div>
+                            )}
+                            
+                            {day.isCurrentMonth && !day.bookingStats && (
+                              <div className="text-xs text-gray-500">ไม่มีข้อมูล</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="flex flex-wrap items-center justify-center gap-6 pt-4 border-t border-gray-200">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-1 bg-green-400 rounded-full"></div>
+                          <span className="text-sm text-gray-600">ที่ว่างเยอะ</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-1 bg-yellow-400 rounded-full"></div>
+                          <span className="text-sm text-gray-600">ที่ว่างน้อย</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-1 bg-red-400 rounded-full"></div>
+                          <span className="text-sm text-gray-600">เต็ม</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-purple-500 rounded"></div>
+                          <span className="text-sm text-gray-600">วันนี้</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Reservations List - Using only /api/reservations/user data */}
             <div className="space-y-8">
               <div className="text-center space-y-4">
                 <h2 className="text-3xl font-bold text-gray-900">รายการจองของคุณ</h2>
-                <p className="text-gray-600">ติดตามและจัดการการจองทั้งหมด</p>
+                <p className="text-gray-600">ติดตามและจัดการการจองทั้งหมด (ข้อมูลจาก API /api/reservations/user)</p>
               </div>
               
-              {reservations.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="relative">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent absolute top-0 left-0"></div>
+                  </div>
+                </div>
+              ) : reservations.length > 0 ? (
                 <div className="grid gap-6 max-w-4xl mx-auto">
                   {reservations.map((reservation) => (
                     <Card key={reservation.id} className="relative overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg group">
@@ -686,8 +991,21 @@ export default function ReservationsPage() {
                               <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                   <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                                  {new Date(reservation.reservation_date).toLocaleDateString("th-TH")}
+                                  {reservation.reservation_date && reservation.reservation_date !== 'null' && reservation.reservation_date.trim() !== '' ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
                                 </span>
+                                <span className="flex items-center bg-blue-100 px-3 py-1 rounded-full">
+                                  <Clock className="h-4 w-4 mr-2 text-blue-600" />
+                                  {reservation.start_time} - {reservation.end_time}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                สร้างเมื่อ: {reservation.created_at && reservation.created_at !== 'null' && reservation.created_at.trim() !== '' ? new Date(reservation.created_at.includes('T') ? reservation.created_at : reservation.created_at.split('-').join('/')).toLocaleDateString("th-TH", {
+                                  year: 'numeric',
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                }) : 'ไม่ระบุ'}
                               </div>
                               {reservation.notes && (
                                 <div className="flex items-start space-x-2 mt-2">

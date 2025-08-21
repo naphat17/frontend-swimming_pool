@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -39,7 +40,15 @@ interface UserProfile {
   address: string
   date_of_birth: string
   id_card: string
+  organization: string
+  age: number
+  medical_condition: string
+  emergency_contact_name: string
+  emergency_contact_relationship: string
+  emergency_contact_phone: string
+  profile_photo: string
   created_at: string
+  member_number: string
 }
 
 export default function ProfilePage() {
@@ -47,27 +56,66 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [passwordData, setPasswordData] = useState({
     current_password: "",
     new_password: "",
     confirm_password: "",
   })
   const { toast } = useToast()
+  const { user: authUser, logout } = useAuth()
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/profile", {
+        if (!token) {
+          toast({
+            title: "ข้อผิดพลาด",
+            description: "กรุณาเข้าสู่ระบบใหม่",
+            variant: "destructive",
+          })
+          logout()
+          return
+        }
+
+        console.log("Fetching profile with token:", token ? token.substring(0, 20) + "..." : "No token")
+        
+        const response = await fetch("http://localhost:3001/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
         })
+
+        console.log("Profile API response status:", response.status)
 
         if (response.ok) {
           const data = await response.json()
           setProfile(data.user)
+          console.log("Profile loaded successfully")
+        } else if (response.status === 401 || response.status === 403) {
+          console.log("Authentication failed, clearing token and redirecting to login")
+          localStorage.removeItem("token")
+          toast({
+            title: "ข้อผิดพลาด",
+            description: "Token หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่",
+            variant: "destructive",
+          })
+          logout()
+        } else {
+          const errorText = await response.text()
+          console.log("Profile API error:", response.status, errorText)
+          toast({
+            title: "ข้อผิดพลาด",
+            description: `ไม่สามารถโหลดข้อมูลโปรไฟล์ได้ (${response.status})`,
+            variant: "destructive",
+          })
         }
       } catch (error) {
         console.error("Error fetching profile:", error)
+        toast({
+          title: "ข้อผิดพลาด",
+          description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
@@ -83,7 +131,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/profile", {
+      const response = await fetch("http://localhost:3001/api/user/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -94,6 +142,12 @@ export default function ProfilePage() {
           last_name: profile.last_name,
           phone: profile.phone,
           address: profile.address,
+          organization: profile.organization,
+          age: profile.age,
+          medical_condition: profile.medical_condition,
+          emergency_contact_name: profile.emergency_contact_name,
+          emergency_contact_relationship: profile.emergency_contact_relationship,
+          emergency_contact_phone: profile.emergency_contact_phone,
         }),
       })
 
@@ -131,7 +185,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/change-password", {
+      const response = await fetch("http://localhost:3001/api/user/change-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -172,6 +226,72 @@ export default function ProfilePage() {
     }
   }
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "ไฟล์ไม่ถูกต้อง",
+        description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "ไฟล์ใหญ่เกินไป",
+        description: "กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 2MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingPhoto(true)
+    try {
+      const token = localStorage.getItem("token")
+      const formData = new FormData()
+      formData.append('profile_photo', file)
+
+      const response = await fetch("http://localhost:3001/api/user/profile/upload-photo", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Update profile state with new photo URL
+        if (profile) {
+          setProfile({ ...profile, profile_photo: data.profile_photo })
+        }
+        toast({
+          title: "อัปโหลดรูปภาพสำเร็จ",
+          description: "รูปโปรไฟล์ได้รับการอัปเดตแล้ว",
+        })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to upload photo")
+      }
+    } catch (error) {
+      console.error("Photo upload error:", error)
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถอัปโหลดรูปภาพได้",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingPhoto(false)
+      // Reset file input
+      event.target.value = ''
+    }
+  }
+
   if (loading) {
     return (
       <UserLayout>
@@ -204,16 +324,29 @@ export default function ProfilePage() {
                 {/* Avatar Section */}
                 <div className="relative group">
                   <Avatar className="h-24 w-24 ring-4 ring-blue-100 shadow-lg">
-                    <AvatarImage src="/placeholder-user.jpg" alt="Profile" />
+                    <AvatarImage src={profile.profile_photo || "/placeholder-user.jpg"} alt="Profile" />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold">
                       {profile.first_name?.charAt(0)}{profile.last_name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    type="file"
+                    id="profile-photo-upload"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
                   <Button
                     size="sm"
                     className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg"
+                    onClick={() => document.getElementById('profile-photo-upload')?.click()}
+                    disabled={uploadingPhoto}
                   >
-                    <Camera className="h-4 w-4" />
+                    {uploadingPhoto ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
 
@@ -231,6 +364,10 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-green-500" />
                         <span>@{profile.username}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-orange-500" />
+                        <span>เลขที่สมาชิก: {profile.member_number}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-purple-500" />
@@ -346,12 +483,36 @@ export default function ProfilePage() {
                             <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                             <Input
                               id="date_of_birth"
-                              type="date"
-                              value={profile.date_of_birth || ""}
+                              value={profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('th-TH', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              }) : "ไม่ระบุ"}
                               disabled
                               className="pl-10 bg-gray-50/80 border-gray-200"
                             />
                           </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="organization" className="text-sm font-medium text-gray-700">สังกัด/หน่วยงาน</Label>
+                          <Input
+                            id="organization"
+                            value={profile.organization || ""}
+                            onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="age" className="text-sm font-medium text-gray-700">อายุ</Label>
+                          <Input
+                            id="age"
+                            type="number"
+                            value={profile.age || ""}
+                            onChange={(e) => setProfile({ ...profile, age: e.target.value ? parseInt(e.target.value) : 0 })}
+                            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                            min="1"
+                            max="120"
+                          />
                         </div>
                       </div>
                       
@@ -368,6 +529,18 @@ export default function ProfilePage() {
                             className="pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                           />
                         </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="medical_condition" className="text-sm font-medium text-gray-700">โรคประจำตัว (ถ้ามี)</Label>
+                        <Textarea
+                          id="medical_condition"
+                          value={profile.medical_condition || ""}
+                          onChange={(e) => setProfile({ ...profile, medical_condition: e.target.value })}
+                          className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="กรอกโรคประจำตัว หากไม่มีให้เว้นว่าง"
+                          rows={2}
+                        />
                       </div>
                       
                       <div className="flex justify-end pt-4">
@@ -413,6 +586,47 @@ export default function ProfilePage() {
                         <span className="text-sm font-medium">
                           {new Date(profile.created_at).toLocaleDateString('th-TH')}
                         </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Emergency Contact Card */}
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 rounded-t-lg">
+                    <CardTitle className="flex items-center gap-2 text-gray-900">
+                      <Phone className="h-5 w-5 text-red-600" />
+                      ผู้ติดต่อฉุกเฉิน
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">ชื่อ-นามสกุล</Label>
+                        <Input
+                          value={profile.emergency_contact_name || ""}
+                          onChange={(e) => setProfile({ ...profile, emergency_contact_name: e.target.value })}
+                          className="border-gray-200 focus:border-red-500 focus:ring-red-500"
+                          placeholder="กรอกชื่อ-นามสกุล"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">ความสัมพันธ์</Label>
+                        <Input
+                          value={profile.emergency_contact_relationship || ""}
+                          onChange={(e) => setProfile({ ...profile, emergency_contact_relationship: e.target.value })}
+                          className="border-gray-200 focus:border-red-500 focus:ring-red-500"
+                          placeholder="เช่น บิดา, มารดา, คู่สมรส"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">เบอร์โทรศัพท์</Label>
+                        <Input
+                          value={profile.emergency_contact_phone || ""}
+                          onChange={(e) => setProfile({ ...profile, emergency_contact_phone: e.target.value })}
+                          className="border-gray-200 focus:border-red-500 focus:ring-red-500"
+                          placeholder="กรอกเบอร์โทรศัพท์"
+                        />
                       </div>
                     </div>
                   </CardContent>

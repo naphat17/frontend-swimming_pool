@@ -57,6 +57,8 @@ export default function AdminSettingsPage() {
     contact_phone: "",
     contact_email: "",
     bank_account_number: "",
+    bank_name: "",
+    account_name: "",
   })
   const { toast } = useToast()
 
@@ -73,7 +75,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
+      const response = await fetch("http://localhost:3001/api/admin/settings", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -93,6 +95,8 @@ export default function AdminSettingsPage() {
           contact_phone: settingsObj.contact_phone || "",
           contact_email: settingsObj.contact_email || "",
           bank_account_number: settingsObj.bank_account_number || "",
+          bank_name: settingsObj.bank_name || "",
+          account_name: settingsObj.account_name || "",
         })
       }
     } catch (error) {
@@ -105,7 +109,7 @@ export default function AdminSettingsPage() {
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
+      const response = await fetch("http://localhost:3001/api/admin/membership-types", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -128,7 +132,7 @@ export default function AdminSettingsPage() {
         setting_value: value,
       }))
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
+      const response = await fetch("http://localhost:3001/api/admin/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -164,7 +168,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
+      const response = await fetch("http://localhost:3001/api/admin/membership-types", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -209,7 +213,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/membership-types/${editingMembership.id}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/membership-types/${editingMembership.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -374,6 +378,26 @@ export default function AdminSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleUpdateSettings} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_name" className="font-medium">ชื่อธนาคาร</Label>
+                        <Input
+                          id="bank_name"
+                          value={systemSettings.bank_name}
+                          onChange={(e) => setSystemSettings({ ...systemSettings, bank_name: e.target.value })}
+                          placeholder="เช่น ธนาคารกรุงเทพ, ธนาคารกสิกรไทย"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="account_name" className="font-medium">ชื่อบัญชี</Label>
+                        <Input
+                          id="account_name"
+                          value={systemSettings.account_name}
+                          onChange={(e) => setSystemSettings({ ...systemSettings, account_name: e.target.value })}
+                          placeholder="ชื่อเจ้าของบัญชี"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="bank_account_number" className="font-medium">เลขบัญชีธนาคาร</Label>
                       <Input
@@ -441,7 +465,7 @@ export default function AdminSettingsPage() {
                                 type="number"
                                 value={newMembershipData.price}
                                 onChange={(e) =>
-                                  setNewMembershipData({ ...newMembershipData, price: Number.parseInt(e.target.value) })
+                                  setNewMembershipData({ ...newMembershipData, price: e.target.value ? Number.parseInt(e.target.value) : 0 })
                                 }
                                 min="0"
                                 required
@@ -456,7 +480,7 @@ export default function AdminSettingsPage() {
                                 onChange={(e) =>
                                   setNewMembershipData({
                                     ...newMembershipData,
-                                    duration_days: Number.parseInt(e.target.value),
+                                    duration_days: e.target.value ? Number.parseInt(e.target.value) : 0,
                                   })
                                 }
                                 min="1"
@@ -556,7 +580,7 @@ export default function AdminSettingsPage() {
                         type="number"
                         value={editingMembership.price}
                         onChange={(e) =>
-                          setEditingMembership({ ...editingMembership, price: Number.parseInt(e.target.value) })
+                          setEditingMembership({ ...editingMembership, price: e.target.value ? Number.parseInt(e.target.value) : 0 })
                         }
                         min="0"
                         required
@@ -569,7 +593,7 @@ export default function AdminSettingsPage() {
                         type="number"
                         value={editingMembership.duration_days}
                         onChange={(e) =>
-                          setEditingMembership({ ...editingMembership, duration_days: Number.parseInt(e.target.value) })
+                          setEditingMembership({ ...editingMembership, duration_days: e.target.value ? Number.parseInt(e.target.value) : 0 })
                         }
                         min="1"
                         required

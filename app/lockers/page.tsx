@@ -68,7 +68,7 @@ export default function LockerReservationsPage() {
   const fetchLockerReservations = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/reservations/user", {
+      const response = await fetch("http://localhost:3001/api/lockers/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -85,7 +85,7 @@ export default function LockerReservationsPage() {
 
   const fetchAvailableLockers = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/available")
+      const response = await fetch("http://localhost:3001/api/lockers/available")
       if (response.ok) {
         const data = await response.json()
         setAvailableLockers(data.lockers || [])
@@ -97,7 +97,7 @@ export default function LockerReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+      const response = await fetch("http://localhost:3001/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
@@ -109,7 +109,7 @@ export default function LockerReservationsPage() {
 
   const fetchLockerPrice = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/locker_price")
+      const response = await fetch("http://localhost:3001/api/settings/locker_price")
       if (response.ok) {
         const data = await response.json()
         setLockerPrice(parseFloat(data.value) || 1500)
@@ -154,7 +154,7 @@ export default function LockerReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/reservations", {
+      const response = await fetch("http://localhost:3001/api/lockers/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ export default function LockerReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`http://localhost:3001/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -215,7 +215,7 @@ export default function LockerReservationsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/reservations/${reservationId}`, {
+      const response = await fetch(`http://localhost:3001/api/lockers/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -593,7 +593,7 @@ export default function LockerReservationsPage() {
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                               <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                 <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                                {new Date(reservation.reservation_date).toLocaleDateString("th-TH")}
+                                {reservation.reservation_date ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
                               </span>
                             </div>
                           </div>

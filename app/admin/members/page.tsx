@@ -110,7 +110,7 @@ export default function AdminMembersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users", {
+      const response = await fetch("http://localhost:3001/api/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -128,7 +128,7 @@ export default function AdminMembersPage() {
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
+      const response = await fetch("http://localhost:3001/api/admin/membership-types", {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -142,7 +142,7 @@ export default function AdminMembersPage() {
 
   const fetchUserCategories = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
+      const response = await fetch("http://localhost:3001/api/memberships/categories")
       if (response.ok) {
         const data = await response.json()
         setUserCategories(data.categories || [])
@@ -175,7 +175,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users", {
+      const response = await fetch("http://localhost:3001/api/admin/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +240,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${editingUser.id}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${editingUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -282,7 +282,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${userId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -315,7 +315,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${selectedUser.id}/extend-membership`, {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${selectedUser.id}/extend-membership`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -682,14 +682,14 @@ export default function AdminMembersPage() {
                             <div>
                               <div className="text-sm font-medium">{user.membership.type}</div>
                               <div className="text-xs text-gray-500">
-                                หมดอายุ: {new Date(user.membership.expires_at).toLocaleDateString("th-TH")}
+                                หมดอายุ: {user.membership?.expires_at ? new Date(user.membership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
                               </div>
                             </div>
                           ) : (
                             <span className="text-gray-500">ไม่มี</span>
                           )}
                         </TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString("th-TH")}</TableCell>
+                        <TableCell>{user.created_at ? new Date(user.created_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button variant="outline" size="sm" onClick={() => setEditingUser(user)}>
@@ -795,7 +795,7 @@ export default function AdminMembersPage() {
                   <div className="text-sm text-blue-800">
                     <p><strong>ประเภท:</strong> {selectedUser.membership.type}</p>
                     <p><strong>สถานะ:</strong> {selectedUser.membership.status === 'active' ? 'ใช้งานได้' : 'ไม่ใช้งาน'}</p>
-                    <p><strong>หมดอายุ:</strong> {new Date(selectedUser.membership.expires_at).toLocaleDateString("th-TH")}</p>
+                    <p><strong>หมดอายุ:</strong> {selectedUser.membership?.expires_at ? new Date(selectedUser.membership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}</p>
                   </div>
                 </div>
               )}
@@ -825,7 +825,7 @@ export default function AdminMembersPage() {
                     id="duration_days"
                     type="number"
                     value={extendData.duration_days}
-                    onChange={(e) => setExtendData({ ...extendData, duration_days: Number.parseInt(e.target.value) })}
+                    onChange={(e) => setExtendData({ ...extendData, duration_days: e.target.value ? Number.parseInt(e.target.value) : 0 })}
                     min="1"
                     required
                   />

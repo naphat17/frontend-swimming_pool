@@ -19,6 +19,7 @@ interface UserMembership {
   user_category: string
   pay_per_session_price: number
   annual_price: number
+  membership_type_id: number
 }
 
 interface UserCategory {
@@ -48,7 +49,7 @@ export default function MembershipPage() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token")
-        const dashboardResponse = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
+        const dashboardResponse = await fetch("http://localhost:3001/api/user/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (dashboardResponse.ok) {
@@ -59,7 +60,7 @@ export default function MembershipPage() {
           console.error("Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
         }
 
-        const categoriesResponse = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories");
+        const categoriesResponse = await fetch("http://localhost:3001/api/memberships/categories");
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setUserCategories(categoriesData.categories);
@@ -78,7 +79,7 @@ export default function MembershipPage() {
     fetchData()
     ;(async () => {
       try {
-        const res = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+        const res = await fetch("http://localhost:3001/api/settings/bank_account_number")
         if (res.ok) {
           const data = await res.json()
           setBankAccountNumber(data.value)
@@ -87,7 +88,32 @@ export default function MembershipPage() {
     })()
   }, [])
 
+  // ฟังก์ชันตรวจสอบว่าสมาชิกรายปียังไม่หมดอายุหรือไม่
+  const isAnnualMembershipActive = () => {
+    if (!userMembership) return false;
+    
+    // ตรวจสอบว่าเป็นสมาชิกรายปี (membership_type_id = 2) และยังไม่หมดอายุ
+    if (userMembership.membership_type_id === 2 && userMembership.status === 'active') {
+      const expiryDate = new Date(userMembership.expires_at);
+      const currentDate = new Date();
+      return expiryDate > currentDate;
+    }
+    
+    return false;
+  };
+
   const handleOpenPaymentModal = (type: 'session' | 'annual', price: number, categoryId: number) => {
+    // ตรวจสอบว่าเป็นการสมัครสมาชิกรายปีและมีสมาชิกรายปีที่ยังไม่หมดอายุ
+    if (type === 'annual' && isAnnualMembershipActive()) {
+      const expiryDate = new Date(userMembership!.expires_at);
+      toast({
+        title: "ไม่สามารถสมัครได้",
+        description: `คุณมีสมาชิกรายปีที่ยังไม่หมดอายุ หมดอายุวันที่ ${expiryDate.toLocaleDateString("th-TH")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setPaymentModal({ type, price, categoryId })
     setPaymentMethod("")
     setPaymentStep("choose")
@@ -100,7 +126,7 @@ export default function MembershipPage() {
     setPurchasing(paymentModal.type)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/purchase", {
+      const response = await fetch("http://localhost:3001/api/memberships/purchase", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -145,7 +171,7 @@ export default function MembershipPage() {
       const token = localStorage.getItem("token")
       const formData = new FormData()
       formData.append("slip", slipFile)
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${createdPayment.payment_id}/upload-slip`, {
+      const response = await fetch(`http://localhost:3001/api/payments/${createdPayment.payment_id}/upload-slip`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -261,7 +287,7 @@ export default function MembershipPage() {
                       <div>
                         <p className="text-sm text-blue-100">หมดอายุ</p>
                         <p className="text-lg font-semibold">
-                          {new Date(userMembership.expires_at).toLocaleDateString("th-TH")}
+                          {userMembership.expires_at ? new Date(userMembership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
                         </p>
                       </div>
                     </div>
@@ -329,7 +355,7 @@ export default function MembershipPage() {
                         <Crown className="h-6 w-6 text-white" />
                       </div>
                       <CardTitle className="text-xl font-bold text-gray-900">สมาชิกรายปี</CardTitle>
-                      <CardDescription className="text-gray-600">ประหยัดมากกว่าและคุ้มค่าที่สุด</CardDescription>
+                      <CardDescription className="text-gray-600">ประหยัดมากกว่าและคุ้มค่าที่สุด + จองสระฟรี 1 ปี!</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 relative z-10">
                       <div className="text-center">
@@ -358,12 +384,35 @@ export default function MembershipPage() {
                         </div>
                         <div className="flex items-center space-x-3">
                           <Check className="h-5 w-5 text-green-500" />
+                          <span className="text-sm text-gray-600 font-medium">จองสระว่ายน้ำฟรี 1 ปีเต็ม (365 วัน)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Check className="h-5 w-5 text-green-500" />
                           <span className="text-sm text-gray-600">สิทธิพิเศษสำหรับสมาชิก</span>
                         </div>
                       </div>
 
+                      {/* แสดงข้อความแจ้งเตือนเมื่อมีสมาชิกรายปีที่ยังไม่หมดอายุ */}
+                      {isAnnualMembershipActive() && (
+                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-yellow-600" />
+                            <p className="text-sm text-yellow-800">
+                              คุณมีสมาชิกรายปีที่ยังไม่หมดอายุ หมดอายุวันที่{" "}
+                              <span className="font-semibold">
+                                {userMembership.expires_at ? new Date(userMembership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <Button
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        className={`w-full font-medium py-3 rounded-lg transition-all duration-300 ${
+                          isAnnualMembershipActive()
+                            ? "bg-gray-400 cursor-not-allowed text-white"
+                            : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transform hover:scale-105 shadow-lg"
+                        }`}
                         onClick={() => {
                           const categoryId = userCategories.find(cat => cat.name === userMembership.user_category)?.id;
                           if (categoryId) {
@@ -376,12 +425,17 @@ export default function MembershipPage() {
                             });
                           }
                         }}
-                        disabled={purchasing === `annual-${userMembership.user_category}`}
+                        disabled={purchasing === `annual-${userMembership.user_category}` || isAnnualMembershipActive()}
                       >
                         {purchasing === `annual-${userMembership.user_category}` ? (
                           <div className="flex items-center space-x-2">
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                             <span>กำลังดำเนินการ...</span>
+                          </div>
+                        ) : isAnnualMembershipActive() ? (
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>สมาชิกรายปียังไม่หมดอายุ</span>
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">

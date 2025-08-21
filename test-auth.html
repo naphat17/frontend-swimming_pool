@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testAuth() {
+            const token = localStorage.getItem('token');
+            const resultDiv = document.getElementById('result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p style="color: red;">No token found in localStorage</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Token found: ' + token.substring(0, 20) + '...</p>';
+            
+            try {
+                // Test user profile
+                const profileResponse = await fetch('http://localhost:3001/api/user/profile', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (profileResponse.ok) {
+                    const profileData = await profileResponse.json();
+                    resultDiv.innerHTML += '<p style="color: green;">Profile API: OK</p>';
+                    resultDiv.innerHTML += '<p>User: ' + JSON.stringify(profileData.user) + '</p>';
+                    
+                    // Test admin payments if user is admin
+                    if (profileData.user && profileData.user.role === 'admin') {
+                        const paymentsResponse = await fetch('http://localhost:3001/api/admin/payments', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        
+                        if (paymentsResponse.ok) {
+                            resultDiv.innerHTML += '<p style="color: green;">Admin Payments API: OK</p>';
+                        } else {
+                            resultDiv.innerHTML += '<p style="color: red;">Admin Payments API: ' + paymentsResponse.status + ' ' + paymentsResponse.statusText + '</p>';
+                        }
+                    } else {
+                        resultDiv.innerHTML += '<p style="color: orange;">User is not admin, skipping admin API test</p>';
+                    }
+                } else {
+                    resultDiv.innerHTML += '<p style="color: red;">Profile API: ' + profileResponse.status + ' ' + profileResponse.statusText + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        // Run test when page loads
+        testAuth();
+    </script>
+</body>
+</html>

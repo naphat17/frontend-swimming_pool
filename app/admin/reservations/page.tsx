@@ -118,7 +118,7 @@ export default function AdminReservationsPage() {
     fetchUsers()
     ;(async () => {
       try {
-        const res = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+        const res = await fetch("http://localhost:3001/api/settings/bank_account_number")
         if (res.ok) {
           const data = await res.json()
           setBankAccountNumber(data.value)
@@ -130,7 +130,7 @@ export default function AdminReservationsPage() {
   const fetchReservations = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reservations", {
+      const response = await fetch("http://localhost:3001/api/admin/reservations", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -148,7 +148,7 @@ export default function AdminReservationsPage() {
   const fetchLockerReservations = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/locker-reservations", {
+      const response = await fetch("http://localhost:3001/api/admin/locker-reservations", {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -163,7 +163,7 @@ export default function AdminReservationsPage() {
   const fetchPools = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/pools", {
+      const response = await fetch("http://localhost:3001/api/admin/pools", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -179,7 +179,7 @@ export default function AdminReservationsPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users?role=user", {
+      const response = await fetch("http://localhost:3001/api/admin/users?role=user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -198,7 +198,7 @@ export default function AdminReservationsPage() {
     try {
       const token = localStorage.getItem("token")
       // ส่ง payment_method ไปด้วย
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reservations", {
+      const response = await fetch("http://localhost:3001/api/admin/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -222,7 +222,7 @@ export default function AdminReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`http://localhost:3001/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -265,7 +265,7 @@ export default function AdminReservationsPage() {
   const handleUpdateReservationStatus = async (reservationId: number, status: string) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/reservations/${reservationId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/reservations/${reservationId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -299,7 +299,7 @@ export default function AdminReservationsPage() {
   const handleUpdateLockerReservationStatus = async (reservationId: number, status: "confirmed" | "cancelled") => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/locker-reservations/${reservationId}/confirm`, {
+      const response = await fetch(`http://localhost:3001/api/admin/locker-reservations/${reservationId}/confirm`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -322,7 +322,7 @@ export default function AdminReservationsPage() {
     if (!confirm("ต้องการลบการจองตู้เก็บของนี้หรือไม่?")) return
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/locker-reservations/${reservationId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/locker-reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -611,12 +611,12 @@ export default function AdminReservationsPage() {
                       {filteredReservations.map((reservation) => (
                         <TableRow key={reservation.id}>
                           <TableCell>
-                            <div className="font-medium">{reservation.user_name}</div>
-                            <div className="text-sm text-gray-500">{reservation.user_email}</div>
+                            <div className="font-medium">{reservation.user_name || 'ไม่ระบุชื่อ'}</div>
+                            <div className="text-sm text-gray-500">{reservation.user_email || 'ไม่ระบุอีเมล'}</div>
                           </TableCell>
-                          <TableCell>{reservation.pool_name}</TableCell>
-                          <TableCell>{new Date(reservation.reservation_date).toLocaleDateString("th-TH")}</TableCell>
-                          <TableCell>{reservation.start_time} - {reservation.end_time}</TableCell>
+                          <TableCell>{reservation.pool_name || 'ไม่ระบุสระ'}</TableCell>
+                          <TableCell>{reservation.reservation_date && reservation.reservation_date !== 'null' && reservation.reservation_date !== '' ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}</TableCell>
+                          <TableCell>{reservation.start_time || 'ไม่ระบุ'} - {reservation.end_time || 'ไม่ระบุ'}</TableCell>
                           <TableCell><Badge className={`${statusColor(reservation.status)}`}>{getStatusText(reservation.status)}</Badge></TableCell>
                           <TableCell>
                             <div>฿{reservation.payment_amount?.toLocaleString() || '-'}</div>
@@ -690,12 +690,12 @@ export default function AdminReservationsPage() {
                       {filteredLockerReservations.map((r) => (
                         <TableRow key={r.id}>
                           <TableCell>
-                            <div className="font-medium">{r.first_name} {r.last_name}</div>
-                            <div className="text-sm text-gray-500">{r.user_email}</div>
+                            <div className="font-medium">{r.first_name || ''} {r.last_name || ''}</div>
+                            <div className="text-sm text-gray-500">{r.user_email || 'ไม่ระบุอีเมล'}</div>
                           </TableCell>
-                          <TableCell>{r.locker_code} ({r.location})</TableCell>
-                          <TableCell>{new Date(r.reservation_date).toLocaleDateString("th-TH")}</TableCell>
-                          <TableCell>{r.start_time} - {r.end_time}</TableCell>
+                          <TableCell>{r.locker_code || 'ไม่ระบุ'} ({r.location || 'ไม่ระบุ'})</TableCell>
+                          <TableCell>{r.reservation_date && r.reservation_date !== 'null' && r.reservation_date !== '' ? new Date(r.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}</TableCell>
+                          <TableCell>{r.start_time || 'ไม่ระบุ'} - {r.end_time || 'ไม่ระบุ'}</TableCell>
                           <TableCell><Badge className={`${statusColor(r.status)}`}>{getStatusText(r.status)}</Badge></TableCell>
                           <TableCell>
                             <div>฿{r.payment_amount?.toLocaleString() || '-'}</div>

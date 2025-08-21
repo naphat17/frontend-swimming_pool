@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin: 10px 0; }
+        input, button { padding: 8px; margin: 5px; }
+        .result { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Debug Login & API Access</h1>
+    
+    <div class="form-group">
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <input type="password" id="password" placeholder="Password" value="admin123">
+        <button onclick="testLogin()">Login</button>
+        <button onclick="testPaymentsAPI()">Test Payments API</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+    </div>
+    
+    <div id="result" class="result"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            resultDiv.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${message}</div>`;
+        }
+        
+        function clearResult() {
+            document.getElementById('result').innerHTML = '';
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            log('Local storage cleared', 'success');
+        }
+        
+        async function testLogin() {
+            clearResult();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('Attempting login...');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                log(`Login response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Login successful! User: ${data.user.username}, Role: ${data.user.role}`, 'success');
+                    
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        log('Token saved to localStorage', 'success');
+                        log(`Token: ${data.token.substring(0, 20)}...`);
+                    }
+                } else {
+                    const errorData = await response.text();
+                    log(`Login failed: ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPaymentsAPI() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('No token found. Please login first.', 'error');
+                return;
+            }
+            
+            log('Testing payments API...');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/payments', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                log(`Payments API response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Payments API successful! Found ${data.payments?.length || 0} payments`, 'success');
+                } else {
+                    const errorData = await response.text();
+                    log(`Payments API failed: ${errorData}`, 'error');
+                    
+                    if (response.status === 401 || response.status === 403) {
+                        log('Authentication failed. Token may be expired.', 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Check current token on page load
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                log(`Found existing token: ${token.substring(0, 20)}...`);
+            } else {
+                log('No token found in localStorage');
+            }
+        }
+    </script>
+</body>
+</html>

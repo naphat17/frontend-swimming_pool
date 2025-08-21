@@ -56,7 +56,7 @@ export default function AdminLockersPage() {
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers?date=${formattedDate}`, {
+      const response = await fetch(`http://localhost:3001/api/lockers?date=${formattedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -103,7 +103,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     const method = currentLocker ? "PUT" : "POST"
-    const url = currentLocker ? `https://backend-swimming-pool.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-swimming-pool.onrender.com/api/lockers"
+    const url = currentLocker ? `http://localhost:3001/api/lockers/${currentLocker.id}` : "http://localhost:3001/api/lockers"
 
     try {
       const response = await fetch(url, {
@@ -144,13 +144,57 @@ export default function AdminLockersPage() {
     }
   }
 
+  const handleSetAllAvailable = async () => {
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการตั้งค่าตู้เก็บของทั้งหมดให้พร้อมใช้งาน?")) return
+
+    setLoading(true)
+    const token = localStorage.getItem("token")
+
+    try {
+      const response = await fetch("http://localhost:3001/api/lockers/bulk/set-available", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "สำเร็จ",
+          description: `ตู้เก็บของทั้งหมดพร้อมใช้งานแล้ว (อัปเดต ${data.updated_count} ตู้)`,
+        })
+        if (selectedDate) {
+          fetchLockers(selectedDate)
+        }
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "ข้อผิดพลาด",
+          description: errorData.message || "ไม่สามารถอัปเดตสถานะตู้ได้",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error setting all lockers available:", error)
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDelete = async (id: number) => {
     if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) return
 
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/${id}`, {
+      const response = await fetch(`http://localhost:3001/api/lockers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -260,10 +304,20 @@ export default function AdminLockersPage() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มตู้ใหม่
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 text-white" 
+                  onClick={handleSetAllAvailable}
+                  disabled={loading}
+                >
+                  <LockOpen className="h-4 w-4 mr-2" />
+                  ตู้เก็บของพร้อมใช้งานทุกตู้
+                </Button>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleOpenDialog()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  เพิ่มตู้ใหม่
+                </Button>
+              </div>
             </div>
 
             <Card className="shadow-lg">

@@ -12,6 +12,7 @@ interface User {
   first_name: string
   last_name: string
   role: "admin" | "user"
+  created_at?: string
 }
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token")
     if (token) {
       // Verify token with API
-      fetch("https://backend-swimming-pool.onrender.com/api/user/profile", {
+      fetch("http://localhost:3001/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(async (res) => {
@@ -46,7 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else if (res.status === 401 || res.status === 403) {
             // Token is invalid or expired
             localStorage.removeItem("token")
-            console.log("Token expired or invalid, removed from storage")
+            setUser(null)
+            console.log("Token expired or invalid, removed from storage and cleared user state")
           } else {
             // Other error, but don't remove token yet
             console.error("Failed to verify token:", res.status, res.statusText)
@@ -54,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .catch((error) => {
           console.error("Error verifying token:", error)
-          localStorage.removeItem("token")
+          // Don't remove token on network errors, server might be starting up
+          // Only remove token if it's actually invalid (handled in response above)
         })
         .finally(() => setLoading(false))
     } else {
@@ -64,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/auth/login", {
+      const response = await fetch("http://localhost:3001/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

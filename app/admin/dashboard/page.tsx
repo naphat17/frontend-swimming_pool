@@ -25,6 +25,7 @@ interface DashboardStats {
   monthly_revenue: number
   today_revenue: number
   yesterday_revenue: number
+  total_revenue: number
   available_lockers: number
   total_lockers: number
 }
@@ -82,7 +83,7 @@ export default function AdminDashboardPage() {
         const token = localStorage.getItem("token")
         
         // Fetch dashboard stats
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/dashboard", {
+        const response = await fetch("http://localhost:3001/api/admin/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -93,7 +94,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch recent reservations
-        const reservationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reservations", {
+        const reservationsResponse = await fetch("http://localhost:3001/api/admin/reservations", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -103,7 +104,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch notifications
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -131,7 +132,7 @@ export default function AdminDashboardPage() {
     
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+      const response = await fetch("http://localhost:3001/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +166,7 @@ export default function AdminDashboardPage() {
         setNotifications([newNotificationObj])
         
         // Also refresh from server
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -192,7 +193,7 @@ export default function AdminDashboardPage() {
   const handleDeleteNotification = async (notificationId: number) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${notificationId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/notifications/${notificationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -207,7 +208,7 @@ export default function AdminDashboardPage() {
         setNotifications(prev => prev.filter(n => n.id !== notificationId))
         
         // Also refresh from server
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("http://localhost:3001/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -280,7 +281,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
             <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white transition-transform transform hover:scale-105">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-100">สมาชิกทั้งหมด</CardTitle>
@@ -313,6 +314,16 @@ export default function AdminDashboardPage() {
               <CardContent>
                 <div className="text-3xl font-bold">฿{stats?.today_revenue ? stats.today_revenue.toLocaleString() : '0'}</div>
                 <p className="text-xs text-purple-200 mt-1">รายรับรวมวันนี้</p>
+              </CardContent>
+            </Card>
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-yellow-500 to-amber-600 text-white transition-transform transform hover:scale-105">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-yellow-100">รายได้รวม</CardTitle>
+                <TrendingUp className="h-6 w-6 text-yellow-200" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">฿{stats?.total_revenue ? stats.total_revenue.toLocaleString() : '0'}</div>
+                <p className="text-xs text-yellow-200 mt-1">รวมค่าสมัครรายปี</p>
               </CardContent>
             </Card>
             <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-600 text-white transition-transform transform hover:scale-105">
@@ -362,7 +373,7 @@ export default function AdminDashboardPage() {
                         {reservations.length > 0 ? (
                           reservations.map((reservation) => (
                             <tr key={reservation.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="py-3 px-4">{new Date(reservation.reservation_date).toLocaleDateString('th-TH')}</td>
+                              <td className="py-3 px-4">{reservation.reservation_date ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString('th-TH') : 'ไม่ระบุวันที่'}</td>
                               <td className="py-3 px-4">{reservation.reservation_time || '13:00 - 15:00'}</td>
                               <td className="py-3 px-4 font-medium text-gray-800">{reservation.user_name}</td>
                               <td className="py-3 px-4">{reservation.pool_name || 'สระหลัก'}</td>
