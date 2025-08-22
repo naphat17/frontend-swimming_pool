@@ -68,7 +68,7 @@ export default function LockerReservationsPage() {
   const fetchLockerReservations = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/lockers/reservations/user", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -85,7 +85,7 @@ export default function LockerReservationsPage() {
 
   const fetchAvailableLockers = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/lockers/available")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/available")
       if (response.ok) {
         const data = await response.json()
         setAvailableLockers(data.lockers || [])
@@ -97,7 +97,7 @@ export default function LockerReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/settings/bank_account_number")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
@@ -109,14 +109,14 @@ export default function LockerReservationsPage() {
 
   const fetchLockerPrice = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/settings/locker_price")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/settings/locker-price/current")
       if (response.ok) {
         const data = await response.json()
-        setLockerPrice(parseFloat(data.value) || 1500)
+        setLockerPrice(parseFloat(data.price?.price) || 30)
       }
     } catch (error) {
       console.error("Error fetching locker price:", error)
-      setLockerPrice(1500) // fallback to default
+      setLockerPrice(30) // fallback to default
     }
   }
 
@@ -154,7 +154,7 @@ export default function LockerReservationsPage() {
         return
       }
 
-      const response = await fetch("http://localhost:3001/api/lockers/reservations", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ export default function LockerReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`http://localhost:3001/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`https://backend-l7q9.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -215,7 +215,7 @@ export default function LockerReservationsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/lockers/reservations/${reservationId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

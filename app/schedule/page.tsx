@@ -38,7 +38,7 @@ export default function SchedulePage() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/pool-schedule")
+        const response = await fetch("https://backend-l7q9.onrender.com/api/pool-schedule")
         if (response.ok) {
           const data = await response.json()
           setSchedules(data.schedules || [])

@@ -49,7 +49,7 @@ export default function MembershipPage() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token")
-        const dashboardResponse = await fetch("http://localhost:3001/api/user/dashboard", {
+        const dashboardResponse = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (dashboardResponse.ok) {
@@ -60,7 +60,7 @@ export default function MembershipPage() {
           console.error("Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
         }
 
-        const categoriesResponse = await fetch("http://localhost:3001/api/memberships/categories");
+        const categoriesResponse = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories");
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setUserCategories(categoriesData.categories);
@@ -79,7 +79,7 @@ export default function MembershipPage() {
     fetchData()
     ;(async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/settings/bank_account_number")
+        const res = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
         if (res.ok) {
           const data = await res.json()
           setBankAccountNumber(data.value)
@@ -126,7 +126,7 @@ export default function MembershipPage() {
     setPurchasing(paymentModal.type)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/memberships/purchase", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/memberships/purchase", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +171,7 @@ export default function MembershipPage() {
       const token = localStorage.getItem("token")
       const formData = new FormData()
       formData.append("slip", slipFile)
-      const response = await fetch(`http://localhost:3001/api/payments/${createdPayment.payment_id}/upload-slip`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${createdPayment.payment_id}/upload-slip`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

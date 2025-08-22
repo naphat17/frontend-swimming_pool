@@ -21,7 +21,7 @@
             
             try {
                 // Test user profile
-                const profileResponse = await fetch('http://localhost:3001/api/user/profile', {
+                const profileResponse = await fetch('https://backend-l7q9.onrender.com/api/user/profile', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 
@@ -32,7 +32,7 @@
                     
                     // Test admin payments if user is admin
                     if (profileData.user && profileData.user.role === 'admin') {
-                        const paymentsResponse = await fetch('http://localhost:3001/api/admin/payments', {
+                        const paymentsResponse = await fetch('https://backend-l7q9.onrender.com/api/admin/payments', {
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
                         

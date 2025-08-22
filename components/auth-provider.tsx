@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token")
     if (token) {
       // Verify token with API
-      fetch("http://localhost:3001/api/user/profile", {
+      fetch("https://backend-l7q9.onrender.com/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(async (res) => {
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("http://localhost:3001/api/auth/login", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

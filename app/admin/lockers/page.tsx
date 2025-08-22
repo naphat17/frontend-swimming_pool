@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import AdminLayout from "@/components/admin-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, Loader2, Calendar as CalendarIcon, Lock, LockOpen, Shield, Settings } from "lucide-react"
+import { Plus, Edit, Trash2, Loader2, Calendar as CalendarIcon, Lock, LockOpen, Shield, Settings, DollarSign } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   Dialog,
@@ -33,6 +33,15 @@ interface Locker {
   is_reserved_on_selected_date?: boolean
 }
 
+interface ReservationInfo {
+  user_name: string
+  user_email: string
+  reservation_date: string
+  locker_code: string
+}
+
+
+
 export default function AdminLockersPage() {
   const [lockers, setLockers] = useState<Locker[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,6 +52,13 @@ export default function AdminLockersPage() {
   const [formStatus, setFormStatus] = useState<'available' | 'maintenance' | 'unavailable'>('available')
   const [submitting, setSubmitting] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [reservationDialogOpen, setReservationDialogOpen] = useState(false)
+  const [reservationInfo, setReservationInfo] = useState<ReservationInfo | null>(null)
+  const [loadingReservation, setLoadingReservation] = useState(false)
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false)
+  const [currentPrice, setCurrentPrice] = useState("30")
+  const [settingPrice, setSettingPrice] = useState(false)
+
   const { toast } = useToast()
 
   useEffect(() => {
@@ -51,12 +67,14 @@ export default function AdminLockersPage() {
     }
   }, [selectedDate])
 
+
+
   const fetchLockers = async (date: Date) => {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const response = await fetch(`http://localhost:3001/api/lockers?date=${formattedDate}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers?date=${formattedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -81,6 +99,141 @@ export default function AdminLockersPage() {
     }
   }
 
+  const fetchReservationInfo = async (lockerId: number, date: Date) => {
+    setLoadingReservation(true)
+    try {
+      const token = localStorage.getItem("token")
+      const formattedDate = format(date, "yyyy-MM-dd")
+      const url = `https://backend-l7q9.onrender.com/api/lockers/${lockerId}/reservation?date=${formattedDate}`
+      console.log('Fetching reservation from URL:', url)
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      console.log('Response status:', response.status)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Reservation data:', data)
+        setReservationInfo(data.reservation)
+        setReservationDialogOpen(true)
+      } else {
+        const errorData = await response.text()
+        console.log('Error response:', errorData)
+        toast({
+          title: "ข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลการจองได้",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching reservation info:", error)
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingReservation(false)
+    }
+  }
+
+  const handleLockerClick = (locker: Locker) => {
+    console.log('Locker clicked:', locker)
+    console.log('Is reserved:', locker.is_reserved_on_selected_date)
+    console.log('Selected date:', selectedDate)
+    if (locker.is_reserved_on_selected_date && selectedDate) {
+      console.log('Fetching reservation info for locker:', locker.id)
+      fetchReservationInfo(locker.id, selectedDate)
+    } else {
+      console.log('Locker is not reserved or no date selected')
+    }
+  }
+
+  const handleCloseReservationDialog = () => {
+    setReservationDialogOpen(false)
+    setReservationInfo(null)
+  }
+
+  const handleSetPrice = async () => {
+    console.log("=== handleSetPrice START ===")
+    console.log("handleSetPrice called with currentPrice:", currentPrice)
+    console.log("settingPrice:", settingPrice)
+    console.log("parseFloat(currentPrice):", parseFloat(currentPrice))
+    console.log("validation check:", !currentPrice || isNaN(parseFloat(currentPrice)) || parseFloat(currentPrice) < 0)
+    
+    if (!currentPrice || isNaN(parseFloat(currentPrice)) || parseFloat(currentPrice) < 0) {
+      console.log("Validation failed, returning early")
+      return
+    }
+    
+    console.log("Setting settingPrice to true")
+    setSettingPrice(true)
+    try {
+      const token = localStorage.getItem("token")
+      console.log("Token:", token ? "exists" : "missing")
+      
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/price`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          price_per_day: parseFloat(currentPrice)
+        }),
+      })
+      
+      console.log("Response status:", response.status)
+
+      if (response.ok) {
+        const responseData = await response.json()
+        console.log("Success response:", responseData)
+        toast({
+          title: "สำเร็จ",
+          description: `ตั้งราคาตู้เก็บของเป็น ${currentPrice} บาทต่อวันเรียบร้อยแล้ว`,
+        })
+        setPriceDialogOpen(false)
+      } else {
+        const errorData = await response.json()
+        console.log("Error response:", errorData)
+        toast({
+          title: "ข้อผิดพลาด",
+          description: errorData.message || "ไม่สามารถตั้งราคาได้",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error setting price:", error)
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        variant: "destructive",
+      })
+    } finally {
+      console.log("Setting settingPrice to false")
+      setSettingPrice(false)
+    }
+  }
+
+  const fetchCurrentPrice = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/price`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentPrice(data.price_per_day?.toString() || "30")
+      }
+    } catch (error) {
+      console.error("Error fetching current price:", error)
+    }
+  }
+
+  const handleOpenPriceDialog = () => {
+    fetchCurrentPrice()
+    setPriceDialogOpen(true)
+  }
+
   const handleOpenDialog = (locker: Locker | null = null) => {
     setCurrentLocker(locker)
     setFormCode(locker ? locker.code : "")
@@ -103,7 +256,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     const method = currentLocker ? "PUT" : "POST"
-    const url = currentLocker ? `http://localhost:3001/api/lockers/${currentLocker.id}` : "http://localhost:3001/api/lockers"
+    const url = currentLocker ? `https://backend-l7q9.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-l7q9.onrender.com/api/lockers"
 
     try {
       const response = await fetch(url, {
@@ -151,7 +304,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch("http://localhost:3001/api/lockers/bulk/set-available", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/bulk/set-available", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -194,7 +347,7 @@ export default function AdminLockersPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3001/api/lockers/${id}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -226,6 +379,8 @@ export default function AdminLockersPage() {
       setLoading(false)
     }
   }
+
+
 
   const getLockerIcon = (status: string) => {
     switch (status) {
@@ -313,6 +468,14 @@ export default function AdminLockersPage() {
                   <LockOpen className="h-4 w-4 mr-2" />
                   ตู้เก็บของพร้อมใช้งานทุกตู้
                 </Button>
+                <Button 
+                  className="bg-gradient-to-r from-orange-600 to-red-600 text-white" 
+                  onClick={handleOpenPriceDialog}
+                  disabled={loading}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  ตั้งราคาตู้เก็บของ
+                </Button>
                 <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleOpenDialog()}>
                   <Plus className="h-4 w-4 mr-2" />
                   เพิ่มตู้ใหม่
@@ -334,7 +497,8 @@ export default function AdminLockersPage() {
                     return (
                       <div key={locker.id} className="text-center">
                         <div
-                          className={`w-28 h-36 rounded-lg shadow-lg flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 ${getLockerColor(locker.status, isReserved)}`}
+                          className={`w-28 h-36 rounded-lg shadow-lg flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 ${getLockerColor(locker.status, isReserved)} ${isReserved ? 'cursor-pointer' : ''}`}
+                          onClick={() => handleLockerClick(locker)}
                         >
                           <IconComponent className="h-10 w-10 mb-2" />
                           <span className="font-bold text-xl">{locker.code}</span>
@@ -422,6 +586,109 @@ export default function AdminLockersPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                ตั้งราคาตู้เก็บของ
+              </DialogTitle>
+              <DialogDescription className="text-lg text-gray-600">
+                กำหนดราคาตู้เก็บของต่อวัน (บาท)
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="price" className="text-lg font-semibold">
+                  ราคาต่อวัน (บาท)
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={currentPrice}
+                  onChange={(e) => setCurrentPrice(e.target.value)}
+                  placeholder="กรอกราคาต่อวัน"
+                  className="text-lg"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPriceDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button 
+                type="button" 
+                onClick={() => {
+                  console.log("Button clicked!")
+                  console.log("Current state - settingPrice:", settingPrice, "currentPrice:", currentPrice)
+                  console.log("currentPrice type:", typeof currentPrice)
+                  console.log("parseFloat(currentPrice):", parseFloat(currentPrice))
+                  console.log("isNaN check:", isNaN(parseFloat(currentPrice)))
+                  console.log("Button disabled?", settingPrice || !currentPrice || isNaN(parseFloat(currentPrice)) || parseFloat(currentPrice) < 0)
+                  handleSetPrice()
+                }}
+                disabled={settingPrice || !currentPrice || isNaN(parseFloat(currentPrice)) || parseFloat(currentPrice) < 0}
+                className="bg-gradient-to-r from-orange-600 to-red-600 text-white"
+              >
+                {settingPrice ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  "บันทึกราคา"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={reservationDialogOpen} onOpenChange={setReservationDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                ข้อมูลการจองตู้เก็บของ
+              </DialogTitle>
+              <DialogDescription className="text-lg text-gray-600">
+                รายละเอียดการจองของผู้ใช้
+              </DialogDescription>
+            </DialogHeader>
+            {loadingReservation ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : reservationInfo ? (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">รหัสตู้</Label>
+                  <p className="text-lg font-semibold">{reservationInfo.locker_code}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">ชื่อผู้จอง</Label>
+                  <p className="text-lg">{reservationInfo.user_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">อีเมล</Label>
+                  <p className="text-lg">{reservationInfo.user_email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">วันที่จอง</Label>
+                  <p className="text-lg">{format(new Date(reservationInfo.reservation_date), "dd/MM/yyyy")}</p>
+                </div>
+              </div>
+            ) : (
+              <p>ไม่พบข้อมูลการจอง</p>
+            )}
+            <DialogFooter>
+              <Button type="button" onClick={handleCloseReservationDialog}>
+                ปิด
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </AdminLayout>
   )

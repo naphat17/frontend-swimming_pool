@@ -56,7 +56,7 @@ export default function PaymentsPage() {
           return
         }
 
-        const response = await fetch("http://localhost:3001/api/payments/user", {
+        const response = await fetch("https://backend-l7q9.onrender.com/api/payments/user", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -140,7 +140,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`http://localhost:3001/api/payments/${paymentId}/receipt`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${paymentId}/receipt`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -230,7 +230,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`http://localhost:3001/api/payments/${paymentId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${paymentId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -315,7 +315,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`http://localhost:3001/api/payments/${selectedRejectPayment.id}/reject`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${selectedRejectPayment.id}/reject`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

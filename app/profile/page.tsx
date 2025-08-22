@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
         console.log("Fetching profile with token:", token ? token.substring(0, 20) + "..." : "No token")
         
-        const response = await fetch("http://localhost:3001/api/user/profile", {
+        const response = await fetch("https://backend-l7q9.onrender.com/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -131,7 +131,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/user/profile", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/user/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -185,7 +185,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://localhost:3001/api/user/change-password", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/user/change-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -256,7 +256,7 @@ export default function ProfilePage() {
       const formData = new FormData()
       formData.append('profile_photo', file)
 
-      const response = await fetch("http://localhost:3001/api/user/profile/upload-photo", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/user/profile/upload-photo", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
