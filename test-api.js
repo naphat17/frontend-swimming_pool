@@ -6,7 +6,7 @@ async function testAPI() {
     try {
         // Test health endpoint
         console.log('\n1. Testing health endpoint...');
-        const healthResponse = await fetch('https://backend-l7q9.onrender.com/api/health');
+        const healthResponse = await fetch('https://backend-swimming-pool.onrender.com/api/health');
         console.log('Health status:', healthResponse.status);
         if (healthResponse.ok) {
             const healthData = await healthResponse.json();
@@ -15,7 +15,7 @@ async function testAPI() {
         
         // Test admin login
         console.log('\n2. Testing admin login...');
-        const loginResponse = await fetch('https://backend-l7q9.onrender.com/api/auth/login', {
+        const loginResponse = await fetch('https://backend-swimming-pool.onrender.com/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: 'admin', password: 'admin123' })
@@ -29,7 +29,7 @@ async function testAPI() {
             if (loginData.token) {
                 // Test admin payments endpoint
                 console.log('\n3. Testing admin payments endpoint...');
-                const paymentsResponse = await fetch('https://backend-l7q9.onrender.com/api/admin/payments', {
+                const paymentsResponse = await fetch('https://backend-swimming-pool.onrender.com/api/admin/payments', {
                     headers: { 'Authorization': `Bearer ${loginData.token}` }
                 });
                 

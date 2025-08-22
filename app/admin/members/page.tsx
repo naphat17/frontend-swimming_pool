@@ -110,7 +110,7 @@ export default function AdminMembersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/users", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -128,7 +128,7 @@ export default function AdminMembersPage() {
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/membership-types", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -142,7 +142,7 @@ export default function AdminMembersPage() {
 
   const fetchUserCategories = async () => {
     try {
-      const response = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories")
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
       if (response.ok) {
         const data = await response.json()
         setUserCategories(data.categories || [])
@@ -175,7 +175,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/users", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +240,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${editingUser.id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${editingUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -282,7 +282,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${userId}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${userId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -315,7 +315,7 @@ export default function AdminMembersPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${selectedUser.id}/extend-membership`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/users/${selectedUser.id}/extend-membership`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

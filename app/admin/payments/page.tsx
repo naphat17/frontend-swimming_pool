@@ -91,7 +91,7 @@ export default function AdminPaymentsPage() {
         queryParams.append("dateFilter", dateFilter)
       }
 
-      const url = `https://backend-l7q9.onrender.com/api/admin/payments?${queryParams.toString()}`
+      const url = `https://backend-swimming-pool.onrender.com/api/admin/payments?${queryParams.toString()}`
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -135,7 +135,7 @@ export default function AdminPaymentsPage() {
         return
       }
       
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/user-categories", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/user-categories", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -159,7 +159,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -217,7 +217,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

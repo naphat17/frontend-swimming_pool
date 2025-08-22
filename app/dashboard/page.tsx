@@ -49,7 +49,7 @@ export default function DashboardPage() {
     const fetchDashboard = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
+        const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
 

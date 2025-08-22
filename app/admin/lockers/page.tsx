@@ -74,7 +74,7 @@ export default function AdminLockersPage() {
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers?date=${formattedDate}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers?date=${formattedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -104,7 +104,7 @@ export default function AdminLockersPage() {
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const url = `https://backend-l7q9.onrender.com/api/lockers/${lockerId}/reservation?date=${formattedDate}`
+      const url = `https://backend-swimming-pool.onrender.com/api/lockers/${lockerId}/reservation?date=${formattedDate}`
       console.log('Fetching reservation from URL:', url)
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -171,7 +171,7 @@ export default function AdminLockersPage() {
       const token = localStorage.getItem("token")
       console.log("Token:", token ? "exists" : "missing")
       
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/price`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/price`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -217,7 +217,7 @@ export default function AdminLockersPage() {
   const fetchCurrentPrice = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/price`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/price`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
@@ -256,7 +256,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     const method = currentLocker ? "PUT" : "POST"
-    const url = currentLocker ? `https://backend-l7q9.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-l7q9.onrender.com/api/lockers"
+    const url = currentLocker ? `https://backend-swimming-pool.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-swimming-pool.onrender.com/api/lockers"
 
     try {
       const response = await fetch(url, {
@@ -304,7 +304,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/bulk/set-available", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/bulk/set-available", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -347,7 +347,7 @@ export default function AdminLockersPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/${id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

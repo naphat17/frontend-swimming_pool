@@ -107,7 +107,7 @@ export default function AdminPoolsPage() {
   const fetchPools = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/pools", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/pools", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -149,7 +149,7 @@ export default function AdminPoolsPage() {
       const year = date.getFullYear()
       const month = date.getMonth() + 1
       
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/booking-stats?pool_id=${pool.id}&year=${year}&month=${month}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/booking-stats?pool_id=${pool.id}&year=${year}&month=${month}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -221,7 +221,7 @@ export default function AdminPoolsPage() {
   const fetchPoolSchedule = async (poolId: number) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/pools/${poolId}/schedule`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/pools/${poolId}/schedule`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -239,7 +239,7 @@ export default function AdminPoolsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/pools", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/pools", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -284,7 +284,7 @@ export default function AdminPoolsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/pools/${editingPool.id}`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/pools/${editingPool.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -327,7 +327,7 @@ export default function AdminPoolsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/pools/${selectedPool.id}/schedule`, {
+      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/pools/${selectedPool.id}/schedule`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

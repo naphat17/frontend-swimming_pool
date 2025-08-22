@@ -75,7 +75,7 @@ export default function AdminReportsPage() {
   const fetchReportData = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/reports", {
+      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reports", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
