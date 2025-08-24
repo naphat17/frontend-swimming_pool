@@ -49,7 +49,7 @@ export default function DashboardPage() {
     const fetchDashboard = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
+        const response = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -243,7 +243,27 @@ export default function DashboardPage() {
                             expiryDate.setDate(createdDate.getDate() + 365)
                             return expiryDate.toLocaleDateString("th-TH")
                           }
-                          return new Date(data.membership.expires_at).toLocaleDateString("th-TH")
+                          try {
+                            const dateStr = data.membership.expires_at.toString()
+                            let date
+                            
+                            if (dateStr.includes('T')) {
+                              date = new Date(dateStr)
+                            } else if (dateStr.includes('-')) {
+                              const [year, month, day] = dateStr.split('-')
+                              date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                            } else {
+                              date = new Date(dateStr)
+                            }
+                            
+                            if (isNaN(date.getTime())) {
+                              return 'รูปแบบวันที่ไม่ถูกต้อง'
+                            }
+                            
+                            return date.toLocaleDateString("th-TH")
+                          } catch (error) {
+                            return 'รูปแบบวันที่ไม่ถูกต้อง'
+                          }
                         })()} 
                       </span>
                     </div>
@@ -299,7 +319,32 @@ export default function DashboardPage() {
                               {reservation.pool_name}
                             </p>
                             <p className="text-gray-600 font-medium">
-                              {reservation.reservation_date ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'} {reservation.start_time} - {reservation.end_time}
+                              {(() => {
+                                if (!reservation.reservation_date || reservation.reservation_date === 'null' || reservation.reservation_date.trim() === '') {
+                                  return 'ไม่ระบุวันที่'
+                                }
+                                try {
+                                  const dateStr = reservation.reservation_date.toString()
+                                  let date
+                                  
+                                  if (dateStr.includes('T')) {
+                                    date = new Date(dateStr)
+                                  } else if (dateStr.includes('-')) {
+                                    const [year, month, day] = dateStr.split('-')
+                                    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                  } else {
+                                    date = new Date(dateStr)
+                                  }
+                                  
+                                  if (isNaN(date.getTime())) {
+                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                  }
+                                  
+                                  return date.toLocaleDateString("th-TH")
+                                } catch (error) {
+                                  return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                }
+                              })()} {reservation.start_time} - {reservation.end_time}
                             </p>
                           </div>
                           <Badge className={`shadow-lg ${getReservationStatusColor(reservation.status)}`}>
@@ -360,7 +405,32 @@ export default function DashboardPage() {
                           <p className="text-xl font-semibold text-gray-800">{notification.title}</p>
                           <p className="text-lg text-gray-600 mt-2">{notification.message}</p>
                           <p className="text-base text-gray-500 mt-3">
-                            {notification.created_at ? new Date(notification.created_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                            {(() => {
+                              if (!notification.created_at || notification.created_at === 'null' || notification.created_at.trim() === '') {
+                                return 'ไม่ระบุวันที่'
+                              }
+                              try {
+                                const dateStr = notification.created_at.toString()
+                                let date
+                                
+                                if (dateStr.includes('T')) {
+                                  date = new Date(dateStr)
+                                } else if (dateStr.includes('-')) {
+                                  const [year, month, day] = dateStr.split('-')
+                                  date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                } else {
+                                  date = new Date(dateStr)
+                                }
+                                
+                                if (isNaN(date.getTime())) {
+                                  return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                }
+                                
+                                return date.toLocaleDateString("th-TH")
+                              } catch (error) {
+                                return 'รูปแบบวันที่ไม่ถูกต้อง'
+                              }
+                            })()}
                           </p>
                         </div>
                         {!notification.is_read && <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-lg animate-pulse"></div>}

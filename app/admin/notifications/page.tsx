@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Bell, Plus, Trash2, Check, X } from "lucide-react"
 
@@ -70,7 +70,7 @@ export default function AdminNotificationsPage() {
       const token = localStorage.getItem("token");
       const query = new URLSearchParams();
       if (filter !== "all") query.append("is_read", filter);
-      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications?${query.toString()}`, {
+      const res = await fetch(`https://backend-l7q9.onrender.com/api/admin/notifications?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -109,7 +109,7 @@ export default function AdminNotificationsPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("https://backend-swimming-pool.onrender.com/api/admin/users?role=user", {
+      const res = await fetch("https://backend-l7q9.onrender.com/api/admin/users?role=user", {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
@@ -123,7 +123,7 @@ export default function AdminNotificationsPage() {
     e.preventDefault()
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+      const res = await fetch("https://backend-l7q9.onrender.com/api/admin/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -148,7 +148,7 @@ export default function AdminNotificationsPage() {
   const updateRead = async (id: number, is_read: boolean) => {
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${id}/read`, {
+      const res = await fetch(`https://backend-l7q9.onrender.com/api/admin/notifications/${id}/read`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_read }),
@@ -161,7 +161,7 @@ export default function AdminNotificationsPage() {
     if (!confirm("ต้องการลบการแจ้งเตือนนี้หรือไม่?")) return
     try {
       const token = localStorage.getItem("token")
-      const res = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${id}`, {
+      const res = await fetch(`https://backend-l7q9.onrender.com/api/admin/notifications/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -270,6 +270,9 @@ export default function AdminNotificationsPage() {
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>ผู้รับประกาศ: {selectedNotification?.title}</DialogTitle>
+              <DialogDescription>
+                รายชื่อผู้ใช้ที่ได้รับประกาศนี้และสถานะการอ่าน
+              </DialogDescription>
             </DialogHeader>
             <div className="mt-4 max-h-[60vh] overflow-y-auto">
               <Table>
@@ -304,6 +307,9 @@ export default function AdminNotificationsPage() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold">สร้างประกาศใหม่</DialogTitle>
+              <DialogDescription>
+                สร้างประกาศใหม่เพื่อส่งให้สมาชิกในระบบ
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-6 pt-4">
               <div className="space-y-2">

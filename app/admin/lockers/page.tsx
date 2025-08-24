@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/admin-layout"
+import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2, Loader2, Calendar as CalendarIcon, Lock, LockOpen, Shield, Settings, DollarSign } from "lucide-react"
@@ -60,6 +62,21 @@ export default function AdminLockersPage() {
   const [settingPrice, setSettingPrice] = useState(false)
 
   const { toast } = useToast()
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+
+  // Check if user is admin
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== 'admin')) {
+      toast({
+        title: "ไม่มีสิทธิ์เข้าถึง",
+        description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ",
+        variant: "destructive",
+      })
+      router.push('/login')
+      return
+    }
+  }, [user, authLoading, router, toast])
 
   useEffect(() => {
     if (selectedDate) {
@@ -74,12 +91,19 @@ export default function AdminLockersPage() {
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers?date=${formattedDate}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers?date=${formattedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
         const data = await response.json()
         setLockers(data.lockers || [])
+      } else if (response.status === 403) {
+        toast({
+          title: "ไม่มีสิทธิ์เข้าถึง",
+          description: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ",
+          variant: "destructive",
+        })
+        router.push('/login')
       } else {
         toast({
           title: "ข้อผิดพลาด",
@@ -104,7 +128,7 @@ export default function AdminLockersPage() {
     try {
       const token = localStorage.getItem("token")
       const formattedDate = format(date, "yyyy-MM-dd")
-      const url = `https://backend-swimming-pool.onrender.com/api/lockers/${lockerId}/reservation?date=${formattedDate}`
+      const url = `https://backend-l7q9.onrender.com/api/lockers/${lockerId}/reservation?date=${formattedDate}`
       console.log('Fetching reservation from URL:', url)
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -171,14 +195,14 @@ export default function AdminLockersPage() {
       const token = localStorage.getItem("token")
       console.log("Token:", token ? "exists" : "missing")
       
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/price`, {
-        method: "POST",
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/settings/locker_price`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          price_per_day: parseFloat(currentPrice)
+          value: currentPrice
         }),
       })
       
@@ -216,13 +240,10 @@ export default function AdminLockersPage() {
 
   const fetchCurrentPrice = async () => {
     try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/price`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/settings/locker_price`)
       if (response.ok) {
         const data = await response.json()
-        setCurrentPrice(data.price_per_day?.toString() || "30")
+        setCurrentPrice(data.value || "30")
       }
     } catch (error) {
       console.error("Error fetching current price:", error)
@@ -256,7 +277,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     const method = currentLocker ? "PUT" : "POST"
-    const url = currentLocker ? `https://backend-swimming-pool.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-swimming-pool.onrender.com/api/lockers"
+    const url = currentLocker ? `https://backend-l7q9.onrender.com/api/lockers/${currentLocker.id}` : "https://backend-l7q9.onrender.com/api/lockers"
 
     try {
       const response = await fetch(url, {
@@ -304,7 +325,7 @@ export default function AdminLockersPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/bulk/set-available", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/bulk/set-available", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -347,7 +368,7 @@ export default function AdminLockersPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/${id}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

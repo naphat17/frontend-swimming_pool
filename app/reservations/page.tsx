@@ -146,7 +146,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const dashboardResponse = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
+      const dashboardResponse = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       })
       
@@ -163,7 +163,7 @@ export default function ReservationsPage() {
         console.error("Reservations - Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
       }
 
-      const categoriesResponse = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
+      const categoriesResponse = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories")
       if (categoriesResponse.ok) {
         const categoriesData = await categoriesResponse.json()
         setUserCategories(categoriesData.categories)
@@ -185,7 +185,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations/user", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -209,7 +209,7 @@ export default function ReservationsPage() {
 
   const fetchPools = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/pools/status")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/pools/status")
       if (response.ok) {
         const data = await response.json()
         setPools(data.pools || [])
@@ -221,7 +221,7 @@ export default function ReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
@@ -341,7 +341,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/reservations", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -363,7 +363,7 @@ export default function ReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`https://backend-l7q9.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -425,7 +425,7 @@ export default function ReservationsPage() {
         return
       }
 
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/reservations/${reservationId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -991,7 +991,32 @@ export default function ReservationsPage() {
                               <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                   <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                                  {reservation.reservation_date && reservation.reservation_date !== 'null' && reservation.reservation_date.trim() !== '' ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                                  {(() => {
+                                    if (!reservation.reservation_date || reservation.reservation_date === 'null' || reservation.reservation_date.trim() === '') {
+                                      return 'ไม่ระบุวันที่'
+                                    }
+                                    try {
+                                      const dateStr = reservation.reservation_date.toString()
+                                      let date
+                                      
+                                      if (dateStr.includes('T')) {
+                                        date = new Date(dateStr)
+                                      } else if (dateStr.includes('-')) {
+                                        const [year, month, day] = dateStr.split('-')
+                                        date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                      } else {
+                                        date = new Date(dateStr)
+                                      }
+                                      
+                                      if (isNaN(date.getTime())) {
+                                        return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                      }
+                                      
+                                      return date.toLocaleDateString("th-TH")
+                                    } catch (error) {
+                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                    }
+                                  })()}
                                 </span>
                                 <span className="flex items-center bg-blue-100 px-3 py-1 rounded-full">
                                   <Clock className="h-4 w-4 mr-2 text-blue-600" />
@@ -999,13 +1024,38 @@ export default function ReservationsPage() {
                                 </span>
                               </div>
                               <div className="text-xs text-gray-500">
-                                สร้างเมื่อ: {reservation.created_at && reservation.created_at !== 'null' && reservation.created_at.trim() !== '' ? new Date(reservation.created_at.includes('T') ? reservation.created_at : reservation.created_at.split('-').join('/')).toLocaleDateString("th-TH", {
-                                  year: 'numeric',
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                }) : 'ไม่ระบุ'}
+                                สร้างเมื่อ: {(() => {
+                                  if (!reservation.created_at || reservation.created_at === 'null' || reservation.created_at.trim() === '') {
+                                    return 'ไม่ระบุ'
+                                  }
+                                  try {
+                                    const dateStr = reservation.created_at.toString()
+                                    let date
+                                    
+                                    if (dateStr.includes('T')) {
+                                      date = new Date(dateStr)
+                                    } else if (dateStr.includes('-')) {
+                                      const [year, month, day] = dateStr.split('-')
+                                      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                    } else {
+                                      date = new Date(dateStr)
+                                    }
+                                    
+                                    if (isNaN(date.getTime())) {
+                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                    }
+                                    
+                                    return date.toLocaleDateString("th-TH", {
+                                      year: 'numeric',
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  } catch (error) {
+                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                  }
+                                })()}
                               </div>
                               {reservation.notes && (
                                 <div className="flex items-start space-x-2 mt-2">

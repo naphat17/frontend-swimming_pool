@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Search, Check, X, DollarSign, AlertCircle, Settings, TrendingUp, Users, Package, Waves, FileX, MessageSquare } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -91,7 +91,7 @@ export default function AdminPaymentsPage() {
         queryParams.append("dateFilter", dateFilter)
       }
 
-      const url = `https://backend-swimming-pool.onrender.com/api/admin/payments?${queryParams.toString()}`
+      const url = `https://backend-l7q9.onrender.com/api/admin/payments?${queryParams.toString()}`
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -135,7 +135,7 @@ export default function AdminPaymentsPage() {
         return
       }
       
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/user-categories", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/user-categories", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -159,7 +159,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -217,7 +217,7 @@ export default function AdminPaymentsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -490,7 +490,32 @@ export default function AdminPaymentsPage() {
                     <Badge className={`${getStatusColor(payment.status)} shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105`}>{getStatusText(payment.status)}</Badge>
                   </TableCell>
                   <TableCell className="py-4">
-                    <span className="text-gray-700 group-hover:text-gray-800 transition-colors font-medium">{payment.created_at ? new Date(payment.created_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}</span>
+                    <span className="text-gray-700 group-hover:text-gray-800 transition-colors font-medium">{(() => {
+                      if (!payment.created_at || payment.created_at === 'null' || payment.created_at.trim() === '') {
+                        return 'ไม่ระบุวันที่'
+                      }
+                      try {
+                        const dateStr = payment.created_at.toString()
+                        let date
+                        
+                        if (dateStr.includes('T')) {
+                          date = new Date(dateStr)
+                        } else if (dateStr.includes('-')) {
+                          const [year, month, day] = dateStr.split('-')
+                          date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                        } else {
+                          date = new Date(dateStr)
+                        }
+                        
+                        if (isNaN(date.getTime())) {
+                          return 'รูปแบบวันที่ไม่ถูกต้อง'
+                        }
+                        
+                        return date.toLocaleDateString("th-TH")
+                      } catch (error) {
+                        return 'รูปแบบวันที่ไม่ถูกต้อง'
+                      }
+                    })()}</span>
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="flex space-x-2">
@@ -951,7 +976,9 @@ export default function AdminPaymentsPage() {
                   </div>
                   แก้ไขราคา: {selectedCategory?.name}
                 </DialogTitle>
-                <p className="text-sm text-gray-600 mt-2">ปรับปรุงราคาสมาชิกภาพสำหรับหมวดหมู่ที่เลือก</p>
+                <DialogDescription className="text-sm text-gray-600 mt-2">
+                  ปรับปรุงราคาสมาชิกภาพสำหรับหมวดหมู่ที่เลือก
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 pt-4">
                 <div className="space-y-2">
@@ -1043,11 +1070,11 @@ export default function AdminPaymentsPage() {
                   </div>
                   ยืนยันการดำเนินการ
                 </DialogTitle>
-                <p className="text-sm text-gray-600 mt-2">
+                <DialogDescription className="text-sm text-gray-600 mt-2">
                   {confirmationAction === 'completed' && 'อนุมัติการชำระเงินและอัปเดตสถานะ'}
                   {confirmationAction === 'failed' && 'ปฏิเสธการชำระเงินและอัปเดตสถานะ'}
                   {confirmationAction === 'refunded' && 'ดำเนินการคืนเงินและอัปเดตสถานะ'}
-                </p>
+                </DialogDescription>
               </DialogHeader>
               {selectedPayment && (
                 <div className="space-y-4">

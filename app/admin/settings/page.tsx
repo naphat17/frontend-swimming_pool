@@ -37,7 +37,7 @@ interface MembershipType {
 }
 
 export default function AdminSettingsPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [settings, setSettings] = useState<Setting[]>([])
   const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([])
@@ -63,19 +63,40 @@ export default function AdminSettingsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
-      router.push("/dashboard")
+    if (!authLoading && (!user || user.role !== "admin")) {
+      toast({
+        title: "ไม่มีสิทธิ์เข้าถึง",
+        description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ",
+        variant: "destructive",
+      })
+      router.push("/login")
       return
     }
 
-    fetchSettings()
-    fetchMembershipTypes()
-  }, [user, router])
+    if (user && user.role === "admin") {
+      fetchSettings()
+      fetchMembershipTypes()
+    }
+  }, [user, authLoading, router, toast])
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">กำลังตรวจสอบสิทธิ์...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/settings", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -98,6 +119,19 @@ export default function AdminSettingsPage() {
           bank_name: settingsObj.bank_name || "",
           account_name: settingsObj.account_name || "",
         })
+      } else if (response.status === 403) {
+        toast({
+          title: "ไม่มีสิทธิ์เข้าถึง",
+          description: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ",
+          variant: "destructive",
+        })
+        router.push("/login")
+      } else {
+        toast({
+          title: "ข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลการตั้งค่าได้",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error fetching settings:", error)
@@ -109,13 +143,26 @@ export default function AdminSettingsPage() {
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/membership-types", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
       if (response.ok) {
         const data = await response.json()
         setMembershipTypes(data.membership_types || [])
+      } else if (response.status === 403) {
+        toast({
+          title: "ไม่มีสิทธิ์เข้าถึง",
+          description: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ",
+          variant: "destructive",
+        })
+        router.push("/login")
+      } else {
+        toast({
+          title: "ข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลประเภทสมาชิกได้",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error fetching membership types:", error)
@@ -132,7 +179,7 @@ export default function AdminSettingsPage() {
         setting_value: value,
       }))
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/settings", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -168,7 +215,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/membership-types", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/membership-types", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +260,7 @@ export default function AdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/membership-types/${editingMembership.id}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/membership-types/${editingMembership.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -552,6 +599,7 @@ export default function AdminSettingsPage() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>แก้ไขประเภทสมาชิก</DialogTitle>
+                <DialogDescription>แก้ไขข้อมูลประเภทสมาชิกที่เลือก</DialogDescription>
               </DialogHeader>
               {editingMembership && (
                 <form onSubmit={handleUpdateMembershipType} className="space-y-4 pt-4">

@@ -120,7 +120,7 @@ DB_NAME=swimming_pool_db
 DB_PORT=3306
 
 # CORS
-CORS_ORIGIN=https://backend-swimming-pool.onrender.com
+CORS_ORIGIN=https://backend-l7q9.onrender.com
 \`\`\`
 
 ### 3. ทดสอบการเชื่อมต่อ
@@ -129,7 +129,7 @@ CORS_ORIGIN=https://backend-swimming-pool.onrender.com
 npm run dev
 
 # ตรวจสอบ Health Check
-curl https://backend-swimming-pool.onrender.com/api/health
+curl https://backend-l7q9.onrender.com/api/health
 \`\`\`
 
 ---
@@ -147,7 +147,7 @@ npm install
 สร้างไฟล์ `.env.local` ในโฟลเดอร์หลัก:
 
 \`\`\`env
-NEXT_PUBLIC_API_URL=https://backend-swimming-pool.onrender.com
+NEXT_PUBLIC_API_URL=https://backend-l7q9.onrender.com
 \`\`\`
 
 ### 3. Build และทดสอบ
@@ -171,13 +171,13 @@ npm start
 cd api
 npm run dev
 \`\`\`
-✅ API จะรันที่: https://backend-swimming-pool.onrender.com
+✅ API จะรันที่: https://backend-l7q9.onrender.com
 
 #### Terminal 2: Frontend
 \`\`\`bash
 npm run dev
 \`\`\`
-✅ Frontend จะรันที่: https://backend-swimming-pool.onrender.com
+✅ Frontend จะรันที่: https://backend-l7q9.onrender.com
 
 ### การรันแบบ Production
 \`\`\`bash
@@ -214,9 +214,9 @@ npm start
 
 | Service | URL | คำอธิบาย |
 |---------|-----|----------|
-| Frontend | https://backend-swimming-pool.onrender.com | หน้าเว็บหลัก |
-| Backend API | https://backend-swimming-pool.onrender.com | API Server |
-| Health Check | https://backend-swimming-pool.onrender.com/api/health | ตรวจสอบสถานะ API |
+| Frontend | https://backend-l7q9.onrender.com | หน้าเว็บหลัก |
+| Backend API | https://backend-l7q9.onrender.com | API Server |
+| Health Check | https://backend-l7q9.onrender.com/api/health | ตรวจสอบสถานะ API |
 | phpMyAdmin | http://localhost/phpmyadmin | จัดการฐานข้อมูล |
 
 ---

@@ -65,10 +65,19 @@ export default function LockerReservationsPage() {
     fetchLockerPrice()
   }, [])
 
+  // Update available lockers when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAvailableLockers(selectedDate)
+    } else {
+      fetchAvailableLockers()
+    }
+  }, [selectedDate])
+
   const fetchLockerReservations = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/reservations/user", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -83,9 +92,14 @@ export default function LockerReservationsPage() {
     }
   }
 
-  const fetchAvailableLockers = async () => {
+  const fetchAvailableLockers = async (date?: string) => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/available")
+      let url = "https://backend-l7q9.onrender.com/api/lockers/available"
+      if (date) {
+        url += `?date=${date}`
+      }
+      
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setAvailableLockers(data.lockers || [])
@@ -97,7 +111,7 @@ export default function LockerReservationsPage() {
 
   const fetchBankAccountNumber = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
         setBankAccountNumber(data.value)
@@ -109,10 +123,10 @@ export default function LockerReservationsPage() {
 
   const fetchLockerPrice = async () => {
     try {
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/settings/locker-price/current")
+      const response = await fetch("https://backend-l7q9.onrender.com/api/settings/locker_price")
       if (response.ok) {
         const data = await response.json()
-        setLockerPrice(parseFloat(data.price?.price) || 30)
+        setLockerPrice(parseFloat(data.value) || 30)
       }
     } catch (error) {
       console.error("Error fetching locker price:", error)
@@ -154,7 +168,7 @@ export default function LockerReservationsPage() {
         return
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/lockers/reservations", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +187,7 @@ export default function LockerReservationsPage() {
         if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
           const formData = new FormData()
           formData.append("slip", slipFile)
-          await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
+          await fetch(`https://backend-l7q9.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -215,7 +229,7 @@ export default function LockerReservationsPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/lockers/reservations/${reservationId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/reservations/${reservationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -384,36 +398,53 @@ export default function LockerReservationsPage() {
               <p className="text-gray-600">เลือกตู้เก็บของที่ต้องการจอง</p>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {availableLockers.map((locker) => {
-                const IconComponent = getLockerIcon(locker.status)
-                return (
-                  <Card 
-                    key={locker.id} 
-                    className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg group cursor-pointer ${getLockerColor(locker.status)}`}
-                    onClick={() => handleLockerClick(locker)}
-                  >
-                    <CardContent className="p-4 text-center">
-                      <div className="space-y-3">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
-                          <IconComponent className="h-6 w-6" />
+            {availableLockers.length === 0 && selectedDate ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-100 to-red-100 rounded-full mb-4">
+                  <AlertCircle className="h-8 w-8 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">ไม่มีตู้ว่างในวันที่เลือก</h3>
+                <p className="text-gray-600 mb-4">กรุณาเลือกวันที่อื่น หรือตรวจสอบตู้ที่ว่างในวันอื่น</p>
+                <Button 
+                  onClick={() => setSelectedDate('')}
+                  variant="outline"
+                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  เลือกวันที่ใหม่
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {availableLockers.map((locker) => {
+                  const IconComponent = getLockerIcon(locker.status)
+                  return (
+                    <Card 
+                      key={locker.id} 
+                      className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg group cursor-pointer ${getLockerColor(locker.status)}`}
+                      onClick={() => handleLockerClick(locker)}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <div className="space-y-3">
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                            <IconComponent className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-lg">{locker.code}</p>
+                            <p className="text-sm opacity-80">{locker.location}</p>
+                          </div>
+                          <Badge 
+                            variant={locker.status === 'available' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {getStatusText(locker.status)}
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="font-bold text-lg">{locker.code}</p>
-                          <p className="text-sm opacity-80">{locker.location}</p>
-                        </div>
-                        <Badge 
-                          variant={locker.status === 'available' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {getStatusText(locker.status)}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Book Locker Button */}
             <div className="flex justify-center">
@@ -593,7 +624,32 @@ export default function LockerReservationsPage() {
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                               <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                 <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                                {reservation.reservation_date ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                                {(() => {
+                                  if (!reservation.reservation_date || reservation.reservation_date === 'null' || reservation.reservation_date.trim() === '') {
+                                    return 'ไม่ระบุวันที่'
+                                  }
+                                  try {
+                                    const dateStr = reservation.reservation_date.toString()
+                                    let date
+                                    
+                                    if (dateStr.includes('T')) {
+                                      date = new Date(dateStr)
+                                    } else if (dateStr.includes('-')) {
+                                      const [year, month, day] = dateStr.split('-')
+                                      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                    } else {
+                                      date = new Date(dateStr)
+                                    }
+                                    
+                                    if (isNaN(date.getTime())) {
+                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                    }
+                                    
+                                    return date.toLocaleDateString("th-TH")
+                                  } catch (error) {
+                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                  }
+                                })()}
                               </span>
                             </div>
                           </div>

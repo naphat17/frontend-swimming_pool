@@ -83,7 +83,7 @@ export default function AdminDashboardPage() {
         const token = localStorage.getItem("token")
         
         // Fetch dashboard stats
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/dashboard", {
+        const response = await fetch("https://backend-l7q9.onrender.com/api/admin/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch recent reservations
-        const reservationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reservations", {
+        const reservationsResponse = await fetch("https://backend-l7q9.onrender.com/api/admin/reservations", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -104,7 +104,7 @@ export default function AdminDashboardPage() {
         }
 
         // Fetch notifications
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-l7q9.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
     
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,7 +166,7 @@ export default function AdminDashboardPage() {
         setNotifications([newNotificationObj])
         
         // Also refresh from server
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-l7q9.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -193,7 +193,7 @@ export default function AdminDashboardPage() {
   const handleDeleteNotification = async (notificationId: number) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/admin/notifications/${notificationId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/notifications/${notificationId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -208,7 +208,7 @@ export default function AdminDashboardPage() {
         setNotifications(prev => prev.filter(n => n.id !== notificationId))
         
         // Also refresh from server
-        const notificationsResponse = await fetch("https://backend-swimming-pool.onrender.com/api/admin/notifications", {
+        const notificationsResponse = await fetch("https://backend-l7q9.onrender.com/api/admin/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         })
         
@@ -373,7 +373,35 @@ export default function AdminDashboardPage() {
                         {reservations.length > 0 ? (
                           reservations.map((reservation) => (
                             <tr key={reservation.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="py-3 px-4">{reservation.reservation_date ? new Date(reservation.reservation_date.split('-').join('/')).toLocaleDateString('th-TH') : 'ไม่ระบุวันที่'}</td>
+                              <td className="py-3 px-4">
+                                {(() => {
+                                  if (!reservation.reservation_date || reservation.reservation_date === 'null' || reservation.reservation_date === '') {
+                                    return 'ไม่ระบุวันที่'
+                                  }
+                                  try {
+                                    const dateStr = reservation.reservation_date.toString()
+                                    let date
+                                    
+                                    if (dateStr.includes('T')) {
+                                      date = new Date(dateStr)
+                                    } else if (dateStr.includes('-')) {
+                                      const [year, month, day] = dateStr.split('-')
+                                      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                    } else {
+                                      date = new Date(dateStr)
+                                    }
+                                    
+                                    if (isNaN(date.getTime())) {
+                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                    }
+                                    
+                                    return date.toLocaleDateString('th-TH')
+                                  } catch (error) {
+                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                  }
+                                })()
+                                }
+                              </td>
                               <td className="py-3 px-4">{reservation.reservation_time || '13:00 - 15:00'}</td>
                               <td className="py-3 px-4 font-medium text-gray-800">{reservation.user_name}</td>
                               <td className="py-3 px-4">{reservation.pool_name || 'สระหลัก'}</td>

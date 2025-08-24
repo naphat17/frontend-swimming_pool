@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Receipt, Download, CreditCard, Calendar, DollarSign, CheckCircle, Clock, X, Printer, Trash2, Eye, Hash, FileX, MessageSquare, AlertCircle } from "lucide-react"
@@ -56,7 +56,7 @@ export default function PaymentsPage() {
           return
         }
 
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/payments/user", {
+        const response = await fetch("https://backend-l7q9.onrender.com/api/payments/user", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -140,7 +140,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${paymentId}/receipt`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${paymentId}/receipt`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -230,7 +230,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${paymentId}`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${paymentId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -315,7 +315,7 @@ export default function PaymentsPage() {
         return
       }
 
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${selectedRejectPayment.id}/reject`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${selectedRejectPayment.id}/reject`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -610,6 +610,7 @@ export default function PaymentsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle className="text-xl font-bold text-gray-900">ใบเสร็จรับเงิน</DialogTitle>
+            <DialogDescription>รายละเอียดใบเสร็จการชำระเงิน</DialogDescription>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" onClick={handlePrintReceipt} className="flex items-center space-x-1">
                 <Printer className="h-4 w-4" />
@@ -714,6 +715,7 @@ export default function PaymentsPage() {
               <FileX className="h-5 w-5" />
               <span>เหตุผลการตีกลับสลิป</span>
             </DialogTitle>
+            <DialogDescription>ดูเหตุผลที่สลิปการชำระเงินถูกตีกลับ</DialogDescription>
           </DialogHeader>
           
           {selectedRejectPayment && (

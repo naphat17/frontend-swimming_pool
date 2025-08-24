@@ -62,6 +62,7 @@ export default function AdminReportsPage() {
     annualSubscribers: []
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -74,17 +75,40 @@ export default function AdminReportsPage() {
 
   const fetchReportData = async () => {
     try {
+      setError(null)
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/admin/reports", {
+      console.log("Fetching reports with token:", token ? "Present" : "Missing")
+      
+      if (!token) {
+        setError("ไม่พบ token การเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่")
+        return
+      }
+      
+      const response = await fetch("https://backend-l7q9.onrender.com/api/admin/reports", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
+      console.log("Reports API response status:", response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log("Reports data received:", data)
         setReportData(data)
+      } else {
+        const errorText = await response.text()
+        console.error("Reports API error:", response.status, errorText)
+        
+        if (response.status === 401) {
+          setError("ไม่มีสิทธิ์เข้าถึงข้อมูลรายงาน กรุณาเข้าสู่ระบบใหม่")
+        } else if (response.status === 500) {
+          setError("เกิดข้อผิดพลาดในเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง")
+        } else {
+          setError(`เกิดข้อผิดพลาด: ${response.status} - ${errorText}`)
+        }
       }
     } catch (error) {
       console.error("Error fetching report data:", error)
+      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต")
     } finally {
       setLoading(false)
     }
@@ -103,6 +127,36 @@ export default function AdminReportsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-red-500 text-xl mb-4">⚠️ เกิดข้อผิดพลาด</div>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={() => {
+                setError(null)
+                setLoading(true)
+                fetchReportData()
+              }}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              ลองใหม่อีกครั้ง
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // ตรวจสอบว่ามีข้อมูลหรือไม่
+  const hasData = reportData.usageStats.totalReservations > 0 || 
+                  reportData.usageStats.totalMembers > 0 || 
+                  reportData.usageStats.totalRevenue > 0 || 
+                  reportData.membershipStats.length > 0 ||
+                  reportData.revenueByChannel.length > 0
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -117,7 +171,27 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        {/* Overview Cards */}
+        {!hasData && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-xl mb-4">📊 ยังไม่มีข้อมูลรายงาน</div>
+            <p className="text-gray-400 mb-4">
+              ข้อมูลรายงานจะแสดงเมื่อมีการจอง สมาชิก หรือการชำระเงินในระบบ
+            </p>
+            <button 
+              onClick={() => {
+                setLoading(true)
+                fetchReportData()
+              }}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              รีเฟรชข้อมูล
+            </button>
+          </div>
+        )}
+
+        {hasData && (
+          <>
+            {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -164,8 +238,8 @@ export default function AdminReportsPage() {
           </Card>
         </div>
 
-        {/* Charts */}
-        <Tabs defaultValue="membership" className="space-y-6">
+            {/* Charts */}
+            <Tabs defaultValue="membership" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="membership">สมาชิกตามประเภท</TabsTrigger>
             <TabsTrigger value="revenue">รายได้ตามช่องทาง</TabsTrigger>
@@ -296,7 +370,9 @@ export default function AdminReportsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </>
+        )}
       </div>
     </AdminLayout>
   )

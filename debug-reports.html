@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Reports API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .data-section {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debug Reports API</h1>
+        
+        <div class="status info">
+            <strong>สถานะ:</strong> <span id="status">พร้อมทดสอบ</span>
+        </div>
+        
+        <div>
+            <button onclick="testLogin()">1. ทดสอบ Login Admin</button>
+            <button onclick="testReportsAPI()">2. ทดสอบ Reports API</button>
+            <button onclick="testHealthAPI()">3. ทดสอบ Health API</button>
+            <button onclick="clearLogs()">ล้าง Logs</button>
+        </div>
+        
+        <div class="data-section">
+            <h3>Logs:</h3>
+            <pre id="logs"></pre>
+        </div>
+        
+        <div class="data-section">
+            <h3>Reports Data:</h3>
+            <pre id="reportsData">ยังไม่มีข้อมูล</pre>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // Update status
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = type;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+            document.getElementById('reportsData').textContent = 'ยังไม่มีข้อมูล';
+        }
+        
+        async function testHealthAPI() {
+            try {
+                log('กำลังทดสอบ Health API...', 'info');
+                
+                const response = await fetch('https://backend-l7q9.onrender.com/api/health');
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    log(`✓ Health API ทำงานได้: ${data}`, 'success');
+                } else {
+                    log(`✗ Health API ล้มเหลว: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`✗ ข้อผิดพลาด Health API: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                log('กำลังทดสอบ Login...', 'info');
+                
+                const response = await fetch('https://backend-l7q9.onrender.com/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@example.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    log(`✓ Login สำเร็จ: ${data.user.email} (${data.user.role})`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`✗ Login ล้มเหลว: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`✗ ข้อผิดพลาด Login: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testReportsAPI() {
+            try {
+                if (!token) {
+                    log('ไม่มี token, กรุณา login ก่อน', 'warning');
+                    return;
+                }
+                
+                log('กำลังทดสอบ Reports API...', 'info');
+                
+                const response = await fetch('https://backend-l7q9.onrender.com/api/admin/reports', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log(`Response Status: ${response.status}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✓ Reports API ทำงานได้', 'success');
+                    
+                    // Display data structure
+                    const dataInfo = {
+                        usageStats: data.usageStats || {},
+                        membershipStats: (data.membershipStats || []).length + ' items',
+                        revenueByChannel: (data.revenueByChannel || []).length + ' items',
+                        userFrequency: (data.userFrequency || []).length + ' items',
+                        monthlyRevenue: (data.monthlyRevenue || []).length + ' items',
+                        annualSubscribers: (data.annualSubscribers || []).length + ' items'
+                    };
+                    
+                    document.getElementById('reportsData').textContent = JSON.stringify(data, null, 2);
+                    log(`ข้อมูล Reports: ${JSON.stringify(dataInfo, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`✗ Reports API ล้มเหลว: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`✗ ข้อผิดพลาด Reports API: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-load token if exists
+        if (token) {
+            log(`Token พบแล้ว: ${token.substring(0, 20)}...`, 'info');
+        } else {
+            log('ไม่พบ Token, กรุณา login', 'warning');
+        }
+    </script>
+</body>
+</html>

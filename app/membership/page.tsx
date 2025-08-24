@@ -49,7 +49,7 @@ export default function MembershipPage() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token")
-        const dashboardResponse = await fetch("https://backend-swimming-pool.onrender.com/api/user/dashboard", {
+        const dashboardResponse = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (dashboardResponse.ok) {
@@ -60,7 +60,7 @@ export default function MembershipPage() {
           console.error("Failed to fetch user dashboard:", dashboardResponse.status, dashboardResponse.statusText);
         }
 
-        const categoriesResponse = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories");
+        const categoriesResponse = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories");
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setUserCategories(categoriesData.categories);
@@ -79,7 +79,7 @@ export default function MembershipPage() {
     fetchData()
     ;(async () => {
       try {
-        const res = await fetch("https://backend-swimming-pool.onrender.com/api/settings/bank_account_number")
+        const res = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
         if (res.ok) {
           const data = await res.json()
           setBankAccountNumber(data.value)
@@ -126,7 +126,7 @@ export default function MembershipPage() {
     setPurchasing(paymentModal.type)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/purchase", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/memberships/purchase", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +171,7 @@ export default function MembershipPage() {
       const token = localStorage.getItem("token")
       const formData = new FormData()
       formData.append("slip", slipFile)
-      const response = await fetch(`https://backend-swimming-pool.onrender.com/api/payments/${createdPayment.payment_id}/upload-slip`, {
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/payments/${createdPayment.payment_id}/upload-slip`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -287,7 +287,32 @@ export default function MembershipPage() {
                       <div>
                         <p className="text-sm text-blue-100">หมดอายุ</p>
                         <p className="text-lg font-semibold">
-                          {userMembership.expires_at ? new Date(userMembership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                          {(() => {
+                            if (!userMembership.expires_at || userMembership.expires_at === 'null' || userMembership.expires_at.trim() === '') {
+                              return 'ไม่ระบุวันที่'
+                            }
+                            try {
+                              const dateStr = userMembership.expires_at.toString()
+                              let date
+                              
+                              if (dateStr.includes('T')) {
+                                date = new Date(dateStr)
+                              } else if (dateStr.includes('-')) {
+                                const [year, month, day] = dateStr.split('-')
+                                date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                              } else {
+                                date = new Date(dateStr)
+                              }
+                              
+                              if (isNaN(date.getTime())) {
+                                return 'รูปแบบวันที่ไม่ถูกต้อง'
+                              }
+                              
+                              return date.toLocaleDateString("th-TH")
+                            } catch (error) {
+                              return 'รูปแบบวันที่ไม่ถูกต้อง'
+                            }
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -400,7 +425,32 @@ export default function MembershipPage() {
                             <p className="text-sm text-yellow-800">
                               คุณมีสมาชิกรายปีที่ยังไม่หมดอายุ หมดอายุวันที่{" "}
                               <span className="font-semibold">
-                                {userMembership.expires_at ? new Date(userMembership.expires_at).toLocaleDateString("th-TH") : 'ไม่ระบุวันที่'}
+                                {(() => {
+                                  if (!userMembership.expires_at || userMembership.expires_at === 'null' || userMembership.expires_at.trim() === '') {
+                                    return 'ไม่ระบุวันที่'
+                                  }
+                                  try {
+                                    const dateStr = userMembership.expires_at.toString()
+                                    let date
+                                    
+                                    if (dateStr.includes('T')) {
+                                      date = new Date(dateStr)
+                                    } else if (dateStr.includes('-')) {
+                                      const [year, month, day] = dateStr.split('-')
+                                      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                    } else {
+                                      date = new Date(dateStr)
+                                    }
+                                    
+                                    if (isNaN(date.getTime())) {
+                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                    }
+                                    
+                                    return date.toLocaleDateString("th-TH")
+                                  } catch (error) {
+                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
+                                  }
+                                })()}
                               </span>
                             </p>
                           </div>

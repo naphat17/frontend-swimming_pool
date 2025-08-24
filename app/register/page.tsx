@@ -64,7 +64,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const fetchUserCategories = async () => {
       try {
-        const response = await fetch("https://backend-swimming-pool.onrender.com/api/memberships/categories")
+        const response = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories")
         if (response.ok) {
           const data = await response.json()
           setUserCategories(data.categories || [])
@@ -182,7 +182,7 @@ export default function RegisterPage() {
         formDataToSend.append('profile_photo', formData.profile_photo)
       }
 
-      const response = await fetch("https://backend-swimming-pool.onrender.com/api/auth/register", {
+      const response = await fetch("https://backend-l7q9.onrender.com/api/auth/register", {
         method: "POST",
         body: formDataToSend,
       })
