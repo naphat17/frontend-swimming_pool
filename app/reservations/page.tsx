@@ -248,7 +248,7 @@ export default function ReservationsPage() {
       const year = date.getFullYear()
       const month = date.getMonth() + 1
       
-      const response = await fetch(`/api/pools/${poolId}/bookings/stats?year=${year}&month=${month}`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pools/${poolId}/bookings/stats?year=${year}&month=${month}`)
       
       if (response.ok) {
         const data = await response.json()

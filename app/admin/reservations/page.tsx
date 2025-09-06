@@ -237,7 +237,7 @@ export default function AdminReservationsPage() {
         formData.append("slip", slipFile) // เพิ่มไฟล์สลิปถ้ามี
       }
 
-      const response = await fetch("/api/admin/reservations", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reservations`, {
         method: "POST", // ใช้ POST method สำหรับสร้างข้อมูลใหม่
         body: formData // ส่ง FormData
       })
@@ -359,7 +359,7 @@ export default function AdminReservationsPage() {
   // ฟังก์ชันสำหรับลบการจองสระ
   const handleDeleteReservation = async (id: number) => {
     try {
-      const response = await fetch(`/api/admin/reservations/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reservations/${id}`, {
         method: "DELETE" // ใช้ DELETE method สำหรับลบข้อมูล
       })
 
@@ -391,7 +391,7 @@ export default function AdminReservationsPage() {
   // ฟังก์ชันสำหรับลบการจองตู้เก็บของ
   const handleDeleteLockerReservation = async (id: number) => {
     try {
-      const response = await fetch(`/api/admin/locker-reservations/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/locker-reservations/${id}`, {
         method: "DELETE" // ใช้ DELETE method สำหรับลบข้อมูล
       })
 
