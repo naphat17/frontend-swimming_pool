@@ -15,26 +15,23 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('=== API ROUTE CALLED ===')
-  console.log('URL:', request.url)
-  console.log('Params:', params)
-  
   try {
     const poolId = parseInt(params.id)
     const { searchParams } = new URL(request.url)
     const month = parseInt(searchParams.get('month') || '1')
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
 
-    console.log(`Processing request for pool ${poolId}, month ${month}, year ${year}`)
-    console.log('Attempting database connection...')
+    // Validate parameters
+    if (isNaN(poolId) || isNaN(month) || isNaN(year)) {
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+    }
     
     let connection
     try {
       connection = await mysql.createConnection(dbConfig)
-      console.log('Database connected successfully')
     } catch (dbError) {
       console.error('Database connection failed:', dbError)
-      throw new Error('Database connection failed')
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
     
     const endDate = new Date(year, month, 0)
@@ -75,54 +72,21 @@ export async function GET(
         })
       } catch (queryError) {
         console.error(`Error querying data for ${dateString}:`, queryError)
-        // Use fallback data for this day
+        // Use default values for this day
         bookingStats.push({
           date: dateString,
-          total_bookings: Math.floor(Math.random() * 10),
-          available_slots: Math.floor(Math.random() * 15) + 5,
+          total_bookings: 0,
+          available_slots: 20,
           pool_id: poolId
         })
       }
     }
     
     await connection.end()
-    console.log('Generated booking stats:', bookingStats.length, 'entries')
     return NextResponse.json(bookingStats)
     
   } catch (error) {
     console.error('Error in API route:', error)
-    
-    // Fallback to mock data
-    console.log('Using fallback mock data')
-    const poolId = parseInt(params.id)
-    const { searchParams } = new URL(request.url)
-    const month = parseInt(searchParams.get('month') || '1')
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
-    
-    const endDate = new Date(year, month, 0)
-    const bookingStats = []
-    
-    for (let day = 1; day <= endDate.getDate(); day++) {
-      const currentDate = new Date(year, month - 1, day)
-      // ใช้ Thailand timezone แทน UTC เพื่อป้องกันการเลื่อนวันที่
-      const thailandDate = new Date(currentDate.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}))
-      const dateString = thailandDate.toISOString().split('T')[0]
-      
-      const seed = poolId * 1000 + day * 31 + month * 7
-      const random1 = (seed * 9301 + 49297) % 233280 / 233280
-      const random2 = ((seed + 1) * 9301 + 49297) % 233280 / 233280
-      
-      const totalBookings = Math.floor(random1 * 15) + 1
-      const availableSlots = Math.floor(random2 * 10) + 5
-
-      bookingStats.push({
-        date: dateString,
-        total_bookings: totalBookings,
-        available_slots: availableSlots,
-        pool_id: poolId
-      })
-    }
-    
-    return NextResponse.json(bookingStats)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

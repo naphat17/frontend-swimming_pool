@@ -74,6 +74,13 @@ interface CalendarDay {
   bookingStats?: BookingStats
 }
 
+interface PoolAvailability {
+  id: number
+  name: string
+  isFull: boolean
+  message?: string
+}
+
 export default function ReservationsPage() {
   const { user } = useAuth() // Get user from auth context
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -242,12 +249,27 @@ export default function ReservationsPage() {
       const month = date.getMonth() + 1
       
       const response = await fetch(`/api/pools/${poolId}/bookings/stats?year=${year}&month=${month}`)
+      
       if (response.ok) {
         const data = await response.json()
-        console.log('Calendar API response:', data)
-        generateCalendarDays(date, data || [])
+        
+        // Check if response is an error object
+        if (data.error) {
+          console.error("API returned error:", data.error)
+          generateCalendarDays(date, [])
+          return
+        }
+        
+        // Validate that data is an array
+        if (Array.isArray(data)) {
+          generateCalendarDays(date, data)
+        } else {
+          console.error("Invalid data format received:", data)
+          generateCalendarDays(date, [])
+        }
       } else {
-        console.error("Failed to fetch calendar data:", response.status)
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error("Failed to fetch calendar data:", response.status, errorData)
         generateCalendarDays(date, [])
       }
     } catch (error) {
@@ -349,7 +371,7 @@ export default function ReservationsPage() {
       const availabilityData = await availabilityResponse.json()
       
       if (availabilityResponse.ok && availabilityData.pools) {
-        const selectedPoolAvailability = availabilityData.pools.find(pool => pool.id === parseInt(selectedPool))
+        const selectedPoolAvailability = availabilityData.pools.find((pool: PoolAvailability) => pool.id === parseInt(selectedPool))
         if (selectedPoolAvailability && selectedPoolAvailability.isFull) {
           setPoolFullMessage(selectedPoolAvailability.message || "สระว่ายน้ำเต็มแล้ว กรุณาเปลี่ยนวันที่หรือเลือกสระอื่น")
           setPoolFullDialog(true)
