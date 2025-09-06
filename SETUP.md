@@ -120,7 +120,7 @@ DB_NAME=swimming_pool_db
 DB_PORT=3306
 
 # CORS
-CORS_ORIGIN=https://backend-l7q9.onrender.com
+CORS_ORIGIN=http://localhost:3000
 \`\`\`
 
 ### 3. ทดสอบการเชื่อมต่อ
@@ -164,7 +164,15 @@ npm start
 
 ## 🏃‍♂️ การรันระบบ
 
-### การรันแบบ Development
+### การรันแบบง่าย (แนะนำ)
+\`\`\`bash
+# รัน Frontend และ Backend พร้อมกันใน terminal เดียว
+npm run dev:all
+\`\`\`
+✅ Frontend จะรันที่: http://localhost:3000
+✅ Backend API จะรันที่: https://backend-l7q9.onrender.com
+
+### การรันแบบ Development (แยก Terminal)
 
 #### Terminal 1: Backend API
 \`\`\`bash
@@ -177,7 +185,7 @@ npm run dev
 \`\`\`bash
 npm run dev
 \`\`\`
-✅ Frontend จะรันที่: https://backend-l7q9.onrender.com
+✅ Frontend จะรันที่: http://localhost:3000
 
 ### การรันแบบ Production
 \`\`\`bash
@@ -214,7 +222,7 @@ npm start
 
 | Service | URL | คำอธิบาย |
 |---------|-----|----------|
-| Frontend | https://backend-l7q9.onrender.com | หน้าเว็บหลัก |
+| Frontend | http://localhost:3000 | หน้าเว็บหลัก |
 | Backend API | https://backend-l7q9.onrender.com | API Server |
 | Health Check | https://backend-l7q9.onrender.com/api/health | ตรวจสอบสถานะ API |
 | phpMyAdmin | http://localhost/phpmyadmin | จัดการฐานข้อมูล |

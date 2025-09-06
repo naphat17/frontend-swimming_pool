@@ -1,19 +1,22 @@
-"use client"
+"use client" // บังคับให้ component นี้ทำงานฝั่ง client
 
-import type React from "react"
+import type React from "react" // นำเข้า type definitions ของ React
 
-import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { useAuth } from "@/components/auth-provider"
-import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+// นำเข้า React hooks และ Next.js utilities
+import { useEffect, useState } from "react" // hooks สำหรับจัดการ state และ side effects
+import { useSearchParams } from "next/navigation" // hook สำหรับอ่าน URL parameters
+import { useAuth } from "@/components/auth-provider" // custom hook สำหรับจัดการ authentication
+import { useRouter } from "next/navigation" // hook สำหรับ navigation
+import AdminLayout from "@/components/admin-layout" // layout component สำหรับหน้า admin
+
+// นำเข้า UI components จาก shadcn/ui
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card" // components สำหรับแสดงข้อมูลในรูปแบบ card
+import { Button } from "@/components/ui/button" // component ปุ่ม
+import { Input } from "@/components/ui/input" // component input field
+import { Label } from "@/components/ui/label" // component label สำหรับ form
+import { Badge } from "@/components/ui/badge" // component สำหรับแสดง status badge
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // components สำหรับ dropdown select
+import { useToast } from "@/hooks/use-toast" // hook สำหรับแสดง toast notifications
 import {
   Dialog,
   DialogContent,
@@ -21,110 +24,132 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Plus, Edit, Trash2, UserPlus, Users } from "lucide-react"
+} from "@/components/ui/dialog" // components สำหรับ modal dialog
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table" // components สำหรับแสดงตาราง
+import { Search, Plus, Edit, Trash2, UserPlus, Users } from "lucide-react" // icons จาก lucide-react
 
+// Interface สำหรับข้อมูลผู้ใช้
 interface User {
-  id: number
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-  phone: string
-  role: string
-  status: string
-  created_at: string
-  membership?: {
-    type: string
-    expires_at: string
-    status: string
+  id: number // รหัสผู้ใช้
+  username: string // ชื่อผู้ใช้
+  email: string // อีเมล
+  first_name: string // ชื่อจริง
+  last_name: string // นามสกุล
+  phone: string // เบอร์โทรศัพท์
+  role: string // บทบาท (admin/user)
+  status: string // สถานะ (active/inactive)
+  created_at: string // วันที่สร้างบัญชี
+  membership?: { // ข้อมูลสมาชิกภาพ (optional)
+    type: string // ประเภทสมาชิก
+    expires_at: string // วันหมดอายุ
+    status: string // สถานะสมาชิก
   }
 }
 
+// Interface สำหรับประเภทสมาชิกภาพ
 interface MembershipType {
-  id: number
-  name: string
-  duration_days: number
+  id: number // รหัสประเภทสมาชิก
+  name: string // ชื่อประเภทสมาชิก
+  duration_days: number // จำนวนวันที่ใช้ได้
 }
 
+// Interface สำหรับหมวดหมู่ผู้ใช้
 interface UserCategory {
-  id: number
-  name: string
-  description: string
-  pay_per_session_price: number
-  annual_price: number
+  id: number // รหัสหมวดหมู่
+  name: string // ชื่อหมวดหมู่
+  description: string // คำอธิบาย
+  pay_per_session_price: number // ราคาต่อครั้ง
+  annual_price: number // ราคารายปี
 }
 
+// Component หลักสำหรับหน้าจัดการสมาชิก (เฉพาะ admin เท่านั้น)
 export default function AdminMembersPage() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [users, setUsers] = useState<User[]>([])
-  const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [roleFilter, setRoleFilter] = useState("all")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [extendDialogOpen, setExtendDialogOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  // Hooks สำหรับ authentication และ navigation
+  const { user } = useAuth() // ข้อมูลผู้ใช้ที่ล็อกอินอยู่
+  const router = useRouter() // สำหรับเปลี่ยนหน้า
+  const searchParams = useSearchParams() // สำหรับอ่าน URL parameters
+  
+  // State สำหรับข้อมูลหลัก
+  const [users, setUsers] = useState<User[]>([]) // รายการผู้ใช้ทั้งหมด
+  const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([]) // ประเภทสมาชิกภาพ
+  const [loading, setLoading] = useState(true) // สถานะการโหลดข้อมูล
+  
+  // State สำหรับการค้นหาและกรอง
+  const [searchTerm, setSearchTerm] = useState("") // คำค้นหา
+  const [statusFilter, setStatusFilter] = useState("all") // กรองตามสถานะ
+  const [roleFilter, setRoleFilter] = useState("all") // กรองตามบทบาท
+  
+  // State สำหรับ Dialog และ Modal
+  const [dialogOpen, setDialogOpen] = useState(false) // สถานะเปิด/ปิด dialog เพิ่มผู้ใช้
+  const [editingUser, setEditingUser] = useState<User | null>(null) // ผู้ใช้ที่กำลังแก้ไข
+  const [extendDialogOpen, setExtendDialogOpen] = useState(false) // สถานะเปิด/ปิด dialog ต่ออายุสมาชิก
+  const [selectedUser, setSelectedUser] = useState<User | null>(null) // ผู้ใช้ที่เลือกสำหรับต่ออายุ
+  
+  // State สำหรับข้อมูลฟอร์มเพิ่มผู้ใช้ใหม่
   const [newUserData, setNewUserData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    address: "",
-    date_of_birth: "",
-    id_card: "",
-    user_category_id: "",
-    role: "user",
+    username: "", // ชื่อผู้ใช้
+    email: "", // อีเมล
+    password: "", // รหัสผ่าน
+    confirmPassword: "", // ยืนยันรหัสผ่าน
+    first_name: "", // ชื่อจริง
+    last_name: "", // นามสกุล
+    phone: "", // เบอร์โทรศัพท์
+    address: "", // ที่อยู่
+    date_of_birth: "", // วันเกิด
+    id_card: "", // เลขบัตรประชาชน
+    user_category_id: "", // รหัสหมวดหมู่ผู้ใช้
+    role: "user", // บทบาท (default เป็น user)
   })
-  const [userCategories, setUserCategories] = useState<UserCategory[]>([])
+  
+  // State สำหรับข้อมูลเพิ่มเติม
+  const [userCategories, setUserCategories] = useState<UserCategory[]>([]) // หมวดหมู่ผู้ใช้
   const [extendData, setExtendData] = useState({
-    membership_type_id: "",
-    duration_days: 30,
+    membership_type_id: "", // รหัสประเภทสมาชิกสำหรับต่ออายุ
+    duration_days: 30, // จำนวนวันที่ต่ออายุ (default 30 วัน)
   })
-  const { toast } = useToast()
+  
+  const { toast } = useToast() // Hook สำหรับแสดง notification
 
+  // useEffect สำหรับการตั้งค่าเริ่มต้นเมื่อ component โหลด
   useEffect(() => {
+    // ตรวจสอบสิทธิ์ admin - ถ้าไม่ใช่ admin ให้ redirect ไปหน้า dashboard
     if (user && user.role !== "admin") {
       router.push("/dashboard")
       return
     }
 
-    fetchUsers()
-    fetchMembershipTypes()
-    fetchUserCategories()
-    // open add dialog if redirected with add=1
+    // โหลดข้อมูลเริ่มต้น
+    fetchUsers() // โหลดรายการผู้ใช้
+    fetchMembershipTypes() // โหลดประเภทสมาชิกภาพ
+    fetchUserCategories() // โหลดหมวดหมู่ผู้ใช้
+    
+    // เปิด dialog เพิ่มผู้ใช้ถ้ามี parameter add=1 ใน URL
     const add = searchParams.get("add")
     if (add === "1") {
       setDialogOpen(true)
     }
   }, [user, router])
 
+  // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้ทั้งหมดจาก API
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง token จาก localStorage
       const response = await fetch("https://backend-l7q9.onrender.com/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }, // ส่ง token ใน header
       })
 
       if (response.ok) {
         const data = await response.json()
-        setUsers(data.users || [])
+        setUsers(data.users || []) // อัปเดต state ด้วยข้อมูลผู้ใช้
       }
     } catch (error) {
       console.error("Error fetching users:", error)
     } finally {
-      setLoading(false)
+      setLoading(false) // ปิดสถานะ loading
     }
   }
 
+  // ฟังก์ชันสำหรับดึงข้อมูลประเภทสมาชิกภาพ
   const fetchMembershipTypes = async () => {
     try {
       const token = localStorage.getItem("token")
@@ -133,28 +158,31 @@ export default function AdminMembersPage() {
       })
       if (response.ok) {
         const data = await response.json()
-        setMembershipTypes(data.membership_types || [])
+        setMembershipTypes(data.membership_types || []) // อัปเดต state ด้วยประเภทสมาชิกภาพ
       }
     } catch (error) {
       console.error("Error fetching membership types:", error)
     }
   }
 
+  // ฟังก์ชันสำหรับดึงข้อมูลหมวดหมู่ผู้ใช้
   const fetchUserCategories = async () => {
     try {
       const response = await fetch("https://backend-l7q9.onrender.com/api/memberships/categories")
       if (response.ok) {
         const data = await response.json()
-        setUserCategories(data.categories || [])
+        setUserCategories(data.categories || []) // อัปเดต state ด้วยหมวดหมู่ผู้ใช้
       }
     } catch (error) {
       console.error("Error fetching user categories:", error)
     }
   }
 
+  // ฟังก์ชันสำหรับสร้างผู้ใช้ใหม่
   const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault() // ป้องกันการ submit form แบบปกติ
 
+    // ตรวจสอบว่ารหัสผ่านและการยืนยันรหัสผ่านตรงกันหรือไม่
     if (newUserData.password !== newUserData.confirmPassword) {
       toast({
         title: "รหัสผ่านไม่ตรงกัน",
@@ -164,6 +192,7 @@ export default function AdminMembersPage() {
       return
     }
 
+    // ตรวจสอบว่าได้เลือกประเภทผู้ใช้แล้วหรือไม่
     if (!newUserData.user_category_id) {
       toast({
         title: "กรุณาเลือกประเภทผู้ใช้",
@@ -174,14 +203,14 @@ export default function AdminMembersPage() {
     }
 
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง token สำหรับ authentication
       const response = await fetch("https://backend-l7q9.onrender.com/api/admin/users", {
-        method: "POST",
+      method: "POST", // ใช้ POST method สำหรับสร้างผู้ใช้ใหม่
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
+        body: JSON.stringify({ // ส่งข้อมูลผู้ใช้ใหม่ในรูปแบบ JSON
           username: newUserData.username,
           email: newUserData.email,
           password: newUserData.password,
@@ -191,17 +220,19 @@ export default function AdminMembersPage() {
           address: newUserData.address,
           date_of_birth: newUserData.date_of_birth,
           id_card: newUserData.id_card,
-          user_category_id: parseInt(newUserData.user_category_id),
+          user_category_id: parseInt(newUserData.user_category_id), // แปลงเป็น number
           role: newUserData.role,
         }),
       })
 
       if (response.ok) {
+        // แสดงข้อความสำเร็จ
         toast({
           title: "เพิ่มผู้ใช้สำเร็จ",
           description: "ผู้ใช้ใหม่ได้รับการเพิ่มเข้าสู่ระบบแล้ว",
         })
-        setDialogOpen(false)
+        setDialogOpen(false) // ปิด dialog
+        // รีเซ็ตฟอร์มกลับเป็นค่าเริ่มต้น
         setNewUserData({
           username: "",
           email: "",
@@ -216,8 +247,9 @@ export default function AdminMembersPage() {
           user_category_id: "",
           role: "user",
         })
-        fetchUsers()
+        fetchUsers() // โหลดข้อมูลผู้ใช้ใหม่
       } else {
+        // แสดงข้อความผิดพลาดจาก server
         const errorData = await response.json()
         toast({
           title: "เพิ่มผู้ใช้ไม่สำเร็จ",
@@ -226,6 +258,7 @@ export default function AdminMembersPage() {
         })
       }
     } catch (error) {
+      // แสดงข้อความผิดพลาดทั่วไป
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถเพิ่มผู้ใช้ได้",
@@ -234,19 +267,20 @@ export default function AdminMembersPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับอัปเดตข้อมูลผู้ใช้
   const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingUser) return
+    e.preventDefault() // ป้องกันการ submit form แบบปกติ
+    if (!editingUser) return // ตรวจสอบว่ามีผู้ใช้ที่กำลังแก้ไขหรือไม่
 
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${editingUser.id}`, {
-        method: "PUT",
+        method: "PUT", // ใช้ PUT method สำหรับอัปเดตข้อมูล
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
+        body: JSON.stringify({ // ส่งเฉพาะข้อมูลที่อนุญาตให้แก้ไข
           first_name: editingUser.first_name,
           last_name: editingUser.last_name,
           phone: editingUser.phone,
@@ -259,8 +293,8 @@ export default function AdminMembersPage() {
           title: "อัปเดตผู้ใช้สำเร็จ",
           description: "ข้อมูลผู้ใช้ได้รับการอัปเดตแล้ว",
         })
-        setEditingUser(null)
-        fetchUsers()
+        setEditingUser(null) // ล้างข้อมูลผู้ใช้ที่กำลังแก้ไข
+        fetchUsers() // โหลดข้อมูลผู้ใช้ใหม่
       } else {
         toast({
           title: "อัปเดตไม่สำเร็จ",
@@ -269,6 +303,7 @@ export default function AdminMembersPage() {
         })
       }
     } catch (error) {
+      // แสดงข้อความผิดพลาดทั่วไป
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถอัปเดตข้อมูลได้",
@@ -277,13 +312,14 @@ export default function AdminMembersPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับลบผู้ใช้
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm("คุณต้องการลบผู้ใช้นี้หรือไม่?")) return
+    if (!confirm("คุณต้องการลบผู้ใช้นี้หรือไม่?")) return // ยืนยันการลบ
 
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${userId}`, {
-        method: "DELETE",
+        method: "DELETE", // ใช้ DELETE method สำหรับลบข้อมูล
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -292,7 +328,7 @@ export default function AdminMembersPage() {
           title: "ลบผู้ใช้สำเร็จ",
           description: "ผู้ใช้ได้รับการลบออกจากระบบแล้ว",
         })
-        fetchUsers()
+        fetchUsers() // โหลดข้อมูลผู้ใช้ใหม่
       } else {
         toast({
           title: "ลบไม่สำเร็จ",
@@ -309,19 +345,20 @@ export default function AdminMembersPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับต่ออายุสมาชิกภาพ
   const handleExtendMembership = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUser) return
+    e.preventDefault() // ป้องกันการ submit form แบบปกติ
+    if (!selectedUser) return // ตรวจสอบว่ามีผู้ใช้ที่เลือกหรือไม่
 
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/users/${selectedUser.id}/extend-membership`, {
-        method: "POST",
+        method: "POST", // ใช้ POST method สำหรับต่ออายุสมาชิก
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(extendData),
+        body: JSON.stringify(extendData), // ส่งข้อมูลการต่ออายุ
       })
 
       if (response.ok) {
@@ -329,9 +366,9 @@ export default function AdminMembersPage() {
           title: "ต่ออายุสมาชิกสำเร็จ",
           description: "สมาชิกภาพได้รับการต่ออายุแล้ว",
         })
-        setExtendDialogOpen(false)
-        setSelectedUser(null)
-        fetchUsers()
+        setExtendDialogOpen(false) // ปิด dialog
+        setSelectedUser(null) // ล้างผู้ใช้ที่เลือก
+        fetchUsers() // โหลดข้อมูลผู้ใช้ใหม่
       } else {
         toast({
           title: "ต่ออายุไม่สำเร็จ",
@@ -348,41 +385,46 @@ export default function AdminMembersPage() {
     }
   }
 
+  // กรองข้อมูลผู้ใช้ตามเงื่อนไขการค้นหาและตัวกรอง
   const filteredUsers = users.filter((user) => {
+    // ตรวจสอบการค้นหาในชื่อ, นามสกุล, อีเมล, และชื่อผู้ใช้
     const matchesSearch =
       user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter // ตรวจสอบตัวกรองสถานะ
+    const matchesRole = roleFilter === "all" || user.role === roleFilter // ตรวจสอบตัวกรองบทบาท
 
-    return matchesSearch && matchesStatus && matchesRole
+    return matchesSearch && matchesStatus && matchesRole // ต้องผ่านเงื่อนไขทั้งหมด
   })
 
+  // ฟังก์ชันกำหนดสีสำหรับแสดงสถานะ
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800" // สีเขียวสำหรับสถานะ active
       case "inactive":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800" // สีแดงสำหรับสถานะ inactive
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800" // สีเทาสำหรับสถานะอื่นๆ
     }
   }
 
+  // ฟังก์ชันกำหนดสีสำหรับแสดงบทบาท
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
-        return "bg-purple-100 text-purple-800"
+        return "bg-purple-100 text-purple-800" // สีม่วงสำหรับ admin
       case "user":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800" // สีน้ำเงินสำหรับ user
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800" // สีเทาสำหรับบทบาทอื่นๆ
     }
   }
 
+  // แสดง loading spinner ขณะโหลดข้อมูล
   if (loading) {
     return (
       <AdminLayout>
@@ -393,61 +435,70 @@ export default function AdminMembersPage() {
     )
   }
 
+  // ตรวจสอบสิทธิ์ admin - ถ้าไม่ใช่ admin จะไม่แสดงหน้านี้
   if (user?.role !== "admin") {
     return null
   }
 
+  // ส่วน JSX ที่แสดงหน้าตาของ component
   return (
-    <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <AdminLayout> {/* Layout หลักสำหรับหน้า admin */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50"> {/* พื้นหลังแบบ gradient */}
         <div className="space-y-8 p-6">
+          {/* ส่วนหัวของหน้า */}
           <div className="text-center space-y-4 py-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-4">
-              <Users className="h-8 w-8 text-white" />
+              <Users className="h-8 w-8 text-white" /> {/* ไอคอนผู้ใช้ */}
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              จัดการสมาชิก
+              จัดการสมาชิก {/* หัวข้อหลัก */}
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              จัดการข้อมูลสมาชิกและผู้ใช้งานระบบ
+              จัดการข้อมูลสมาชิกและผู้ใช้งานระบบ {/* คำอธิบายหน้า */}
             </p>
           </div>
 
+          {/* ส่วนแสดงสถิติแบบ card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            {/* Card แสดงจำนวนสมาชิกทั้งหมด */}
             <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white transition-transform transform hover:scale-105">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-100">สมาชิกทั้งหมด</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{users.length}</div>
+                <div className="text-3xl font-bold">{users.length}</div> {/* แสดงจำนวนผู้ใช้ทั้งหมด */}
               </CardContent>
             </Card>
+            {/* Card แสดงจำนวนสมาชิกที่ใช้งานได้ */}
             <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-green-500 to-teal-600 text-white transition-transform transform hover:scale-105">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-green-100">ใช้งานได้</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{users.filter(u => u.status === 'active').length}</div>
+                <div className="text-3xl font-bold">{users.filter(u => u.status === 'active').length}</div> {/* นับผู้ใช้ที่มีสถานะ active */}
               </CardContent>
             </Card>
+            {/* Card แสดงจำนวนสมาชิกที่ไม่ใช้งาน */}
             <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-red-500 to-pink-600 text-white transition-transform transform hover:scale-105">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-red-100">ไม่ใช้งาน</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{users.filter(u => u.status === 'inactive').length}</div>
+                <div className="text-3xl font-bold">{users.filter(u => u.status === 'inactive').length}</div> {/* นับผู้ใช้ที่มีสถานะ inactive */}
               </CardContent>
             </Card>
           </div>
 
+          {/* ส่วนแสดงรายการผู้ใช้และฟอร์มเพิ่มผู้ใช้ใหม่ */}
           <Card className="max-w-7xl mx-auto shadow-lg border-gray-200">
             <CardHeader className="flex justify-between items-center">
-              <CardTitle>รายการผู้ใช้ ({filteredUsers.length})</CardTitle>
+              <CardTitle>รายการผู้ใช้ ({filteredUsers.length})</CardTitle> {/* แสดงจำนวนผู้ใช้ที่กรองแล้ว */}
+              {/* Dialog สำหรับเพิ่มผู้ใช้ใหม่ */}
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
                     <Plus className="h-4 w-4 mr-2" />
-                    เพิ่มผู้ใช้ใหม่
+                    เพิ่มผู้ใช้ใหม่ {/* ปุ่มเปิด dialog */}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-2xl">

@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import UserLayout from "@/components/user-layout"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -47,59 +45,60 @@ export default function LockerReservationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const { toast } = useToast()
 
-  // Payment states (fixed amount 30 THB)
   const [paymentMethod, setPaymentMethod] = useState<string>("cash")
   const [slipFile, setSlipFile] = useState<File | null>(null)
   const slipInputRef = useRef<HTMLInputElement>(null)
   const [bankAccountNumber, setBankAccountNumber] = useState("")
-  const [lockerPrice, setLockerPrice] = useState(1500) // default price
+  const [lockerPrice, setLockerPrice] = useState(1500)
 
   const maxDate = new Date()
   maxDate.setDate(maxDate.getDate() + 7)
   const maxDateString = maxDate.toISOString().split("T")[0]
 
   useEffect(() => {
-    fetchLockerReservations()
-    fetchAvailableLockers()
-    fetchBankAccountNumber()
-    fetchLockerPrice()
+    const loadInitialData = async () => {
+      try {
+        await Promise.all([
+          fetchReservations(),
+          fetchBankAccountNumber(),
+          fetchLockerPrice()
+        ])
+      } catch (error) {
+        console.error("Error loading initial data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadInitialData()
   }, [])
 
-  // Update available lockers when date changes
   useEffect(() => {
     if (selectedDate) {
-      fetchAvailableLockers(selectedDate)
-    } else {
       fetchAvailableLockers()
     }
   }, [selectedDate])
 
-  const fetchLockerReservations = async () => {
+  const fetchReservations = async () => {
     try {
       const token = localStorage.getItem("token")
       const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
-
       if (response.ok) {
         const data = await response.json()
         setLockerReservations(data.reservations || [])
       }
     } catch (error) {
-      console.error("Error fetching locker reservations:", error)
-    } finally {
-      setLoading(false)
+      console.error("Error fetching reservations:", error)
     }
   }
 
-  const fetchAvailableLockers = async (date?: string) => {
+  const fetchAvailableLockers = async () => {
     try {
-      let url = "https://backend-l7q9.onrender.com/api/lockers/available"
-      if (date) {
-        url += `?date=${date}`
-      }
-      
-      const response = await fetch(url)
+      const token = localStorage.getItem("token")
+      const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/available?date=${selectedDate}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (response.ok) {
         const data = await response.json()
         setAvailableLockers(data.lockers || [])
@@ -114,10 +113,10 @@ export default function LockerReservationsPage() {
       const response = await fetch("https://backend-l7q9.onrender.com/api/settings/bank_account_number")
       if (response.ok) {
         const data = await response.json()
-        setBankAccountNumber(data.value)
+        setBankAccountNumber(data.value || "")
       }
     } catch (error) {
-      console.error("Error fetching bank account number:", error)
+      console.error("Error fetching bank account:", error)
     }
   }
 
@@ -126,97 +125,78 @@ export default function LockerReservationsPage() {
       const response = await fetch("https://backend-l7q9.onrender.com/api/settings/locker_price")
       if (response.ok) {
         const data = await response.json()
-        setLockerPrice(parseFloat(data.value) || 30)
+        setLockerPrice(data.value || 1500)
       }
     } catch (error) {
       console.error("Error fetching locker price:", error)
-      setLockerPrice(30) // fallback to default
     }
   }
 
-  const handleLockerClick = (locker: Locker) => {
-    if (locker.status === 'available') {
-      setSelectedLocker(locker.id.toString());
-      setDialogOpen(true);
-    }
-  };
-
-  const handleSubmitReservation = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!selectedLocker || !selectedDate) {
       toast({
-        title: "กรุณากรอกข้อมูลให้ครบถ้วน",
-        description: "เลือกตู้และวันที่ที่ต้องการจอง",
+        title: "ข้อมูลไม่ครบถ้วน",
+        description: "กรุณาเลือกตู้และวันที่",
         variant: "destructive",
       })
       return
     }
 
     setSubmitting(true)
-
     try {
       const token = localStorage.getItem("token")
-
-      if (!token) {
+      
+      // Find the locker ID from the selected locker code
+      const selectedLockerObj = availableLockers.find(locker => locker.code === selectedLocker)
+      if (!selectedLockerObj) {
         toast({
           title: "เกิดข้อผิดพลาด",
-          description: "กรุณาเข้าสู่ระบบใหม่",
+          description: "ไม่พบข้อมูลตู้ที่เลือก",
           variant: "destructive",
         })
-        window.location.href = "/login"
+        setSubmitting(false)
         return
+      }
+
+      const formData = new FormData()
+      formData.append("locker_id", selectedLockerObj.id.toString())
+      formData.append("reservation_date", selectedDate)
+      formData.append("payment_method", paymentMethod)
+      formData.append("amount", lockerPrice.toString())
+      
+      if (paymentMethod === "bank_transfer" && slipFile) {
+        formData.append("slip", slipFile)
       }
 
       const response = await fetch("https://backend-l7q9.onrender.com/api/lockers/reservations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          locker_id: Number.parseInt(selectedLocker),
-          reservation_date: selectedDate,
-          payment_method: paymentMethod,
-          amount: lockerPrice, // use dynamic price
-        }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       })
 
       if (response.ok) {
-        const data = await response.json()
-        if (paymentMethod === "bank_transfer" && slipFile && data.paymentId) {
-          const formData = new FormData()
-          formData.append("slip", slipFile)
-          await fetch(`https://backend-l7q9.onrender.com/api/payments/${data.paymentId}/upload-slip`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-          })
-        }
         toast({
-          title: "จองตู้สำเร็จ",
-          description: "การจองตู้ของคุณถูกบันทึกแล้ว",
+          title: "จองสำเร็จ",
+          description: "จองตู้เก็บของเรียบร้อยแล้ว",
         })
         setDialogOpen(false)
         setSelectedLocker("")
         setSelectedDate("")
-        setPaymentMethod("cash")
         setSlipFile(null)
-        if (slipInputRef.current) slipInputRef.current.value = ""
-        fetchLockerReservations()
-        fetchAvailableLockers()
+        fetchReservations()
       } else {
         const errorData = await response.json()
         toast({
-          title: "จองตู้ไม่สำเร็จ",
-          description: errorData.message || "เกิดข้อผิดพลาด",
+          title: "เกิดข้อผิดพลาด",
+          description: errorData.message || "ไม่สามารถจองได้",
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดำเนินการได้",
+        description: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้",
         variant: "destructive",
       })
     } finally {
@@ -225,8 +205,6 @@ export default function LockerReservationsPage() {
   }
 
   const handleCancelReservation = async (reservationId: number) => {
-    if (!confirm("คุณต้องการยกเลิกการจองตู้นี้หรือไม่?")) return
-
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(`https://backend-l7q9.onrender.com/api/lockers/reservations/${reservationId}`, {
@@ -236,67 +214,28 @@ export default function LockerReservationsPage() {
 
       if (response.ok) {
         toast({
-          title: "ยกเลิกการจองตู้สำเร็จ",
-          description: "การจองตู้ได้รับการยกเลิกแล้ว",
+          title: "ยกเลิกสำเร็จ",
+          description: "ยกเลิกการจองเรียบร้อยแล้ว",
         })
-        fetchLockerReservations()
+        fetchReservations()
       } else {
         toast({
-          title: "ยกเลิกไม่สำเร็จ",
-          description: "ไม่สามารถยกเลิกการจองตู้ได้",
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถยกเลิกการจองได้",
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดำเนินการได้",
+        description: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้",
         variant: "destructive",
       })
     }
   }
 
-  const getLockerIcon = (status: string) => {
-    return status === 'available' ? LockOpen : Lock
-  }
-
-  const getLockerColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 hover:bg-green-200 text-green-800 border-2 border-green-300'
-      case 'occupied':
-        return 'bg-red-100 text-red-800 border-2 border-red-300 cursor-not-allowed'
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300 cursor-not-allowed'
-      default:
-        return 'bg-gray-100 text-gray-800 border-2 border-gray-300'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'ว่าง'
-      case 'occupied':
-        return 'ไม่ว่าง'
-      case 'maintenance':
-        return 'ซ่อมแซม'
-      default:
-        return status
-    }
-  }
-
-  const getReservationStatusIcon = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return <CheckCircle className="h-4 w-4" />
-      case "pending":
-        return <AlertCircle className="h-4 w-4" />
-      case "cancelled":
-        return <XCircle className="h-4 w-4" />
-      default:
-        return <AlertCircle className="h-4 w-4" />
-    }
+  const handleLockerClick = (lockerCode: string) => {
+    setSelectedLocker(lockerCode)
   }
 
   const getReservationStatusColor = (status: string) => {
@@ -325,7 +264,6 @@ export default function LockerReservationsPage() {
     <UserLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="space-y-8 p-6">
-          {/* Hero Section */}
           <div className="text-center space-y-4 py-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-4">
               <Shield className="h-8 w-8 text-white" />
@@ -338,148 +276,147 @@ export default function LockerReservationsPage() {
             </p>
           </div>
 
-          {/* Service Info Card - Similar to membership status */}
-          <div className="max-w-4xl mx-auto">
-            <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
-              <CardHeader className="relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-white/20 rounded-full">
-                      <Shield className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl font-bold text-white">
-                        บริการตู้เก็บของ
-                      </CardTitle>
-                      <CardDescription className="text-blue-100">
-                        ตู้เก็บของขนาด 30x30x60 ซม. พร้อมระบบล็อคอัตโนมัติ ใช้งานได้ตลอดวัน
-                      </CardDescription>
-                    </div>
+          <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 border-b border-blue-100/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
-                  <Badge className="bg-green-100 text-green-800 border-0 px-4 py-2 text-sm font-medium">
-                    พร้อมใช้งาน
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="relative z-10 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center space-x-3">
-                    <Lock className="h-5 w-5 text-blue-200" />
-                    <div>
-                      <p className="text-sm text-blue-100">ระยะเวลา</p>
-                      <p className="text-lg font-semibold">ต่อวัน</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CreditCard className="h-5 w-5 text-blue-200" />
-                    <div>
-                      <p className="text-sm text-blue-100">ราคา</p>
-                      <p className="text-lg font-semibold">฿{lockerPrice.toLocaleString()} ต่อวัน</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-blue-200" />
-                    <div>
-                      <p className="text-sm text-blue-100">ความปลอดภัย</p>
-                      <p className="text-lg font-semibold">ล็อคอัตโนมัติ</p>
-                    </div>
+                  <div>
+                    <CardTitle className="text-blue-800">
+                      เลือกวันที่จอง
+                    </CardTitle>
+                    <CardDescription className="text-blue-600">
+                      เลือกวันที่ที่ต้องการใช้ตู้เก็บของ
+                    </CardDescription>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                  ราคา {lockerPrice.toLocaleString()} บาท/วัน
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-sm font-medium text-gray-700">
+                    วันที่
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    max={maxDateString}
+                    className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Available Lockers Section */}
-          <div className="max-w-6xl mx-auto space-y-8">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold text-gray-900">ตู้เก็บของที่พร้อมใช้งาน</h2>
-              <p className="text-gray-600">เลือกตู้เก็บของที่ต้องการจอง</p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-800">ตู้ที่ว่าง</h2>
             </div>
-            
+
             {availableLockers.length === 0 && selectedDate ? (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-100 to-red-100 rounded-full mb-4">
-                  <AlertCircle className="h-8 w-8 text-orange-600" />
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                  <AlertCircle className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">ไม่มีตู้ว่างในวันที่เลือก</h3>
-                <p className="text-gray-600 mb-4">กรุณาเลือกวันที่อื่น หรือตรวจสอบตู้ที่ว่างในวันอื่น</p>
-                <Button 
-                  onClick={() => setSelectedDate('')}
+                <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่มีตู้ว่าง</h3>
+                <p className="text-gray-500 mb-4">ไม่มีตู้เก็บของว่างในวันที่เลือก</p>
+                <Button
+                  onClick={() => setSelectedDate("")}
                   variant="outline"
-                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50"
                 >
                   เลือกวันที่ใหม่
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {availableLockers.map((locker) => {
-                  const IconComponent = getLockerIcon(locker.status)
-                  return (
-                    <Card 
-                      key={locker.id} 
-                      className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg group cursor-pointer ${getLockerColor(locker.status)}`}
-                      onClick={() => handleLockerClick(locker)}
-                    >
-                      <CardContent className="p-4 text-center">
-                        <div className="space-y-3">
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
-                            <IconComponent className="h-6 w-6" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {availableLockers.map((locker) => (
+                  <Card
+                    key={locker.id}
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                      selectedLocker === locker.code
+                        ? "ring-2 ring-blue-500 bg-blue-50/50"
+                        : "hover:shadow-md bg-white/80 backdrop-blur-sm border-blue-100/50"
+                    }`}
+                    onClick={() => handleLockerClick(locker.code)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <LockOpen className="h-5 w-5 text-green-600" />
                           </div>
                           <div>
-                            <p className="font-bold text-lg">{locker.code}</p>
-                            <p className="text-sm opacity-80">{locker.location}</p>
+                            <h3 className="font-medium text-gray-900">
+                              ตู้ {locker.code}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {locker.location}
+                            </p>
                           </div>
-                          <Badge 
-                            variant={locker.status === 'available' ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {getStatusText(locker.status)}
-                          </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800 border-green-200"
+                        >
+                          ว่าง
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
+          </div>
 
-            {/* Book Locker Button */}
-            <div className="flex justify-center">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-8 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
-                    <Plus className="h-5 w-5 mr-2" />
-                    จองตู้เก็บของ
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
-                  <DialogHeader>
-                    <div className="text-center space-y-2">
-                      <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-2">
-                        <Shield className="h-6 w-6 text-white" />
-                      </div>
-                      <DialogTitle className="text-xl font-bold">จองตู้เก็บของ</DialogTitle>
-                      <DialogDescription className="text-gray-600">
-                        เลือกตู้และวันที่ พร้อมชำระเงินค่าบริการ
+          <div className="flex justify-center">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  disabled={!selectedLocker || !selectedDate}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-8 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  จองตู้เก็บของ
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border-blue-100/50">
+                <DialogHeader>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Shield className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-blue-800">ยืนยันการจอง</DialogTitle>
+                      <DialogDescription className="text-blue-600">
+                        กรุณาตรวจสอบข้อมูลและเลือกวิธีการชำระเงิน
                       </DialogDescription>
                     </div>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitReservation} className="space-y-6">
+                  </div>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="locker" className="text-sm font-medium">เลือกตู้</Label>
-                      <Select value={selectedLocker} onValueChange={setSelectedLocker} required>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="เลือกตู้ที่ต้องการจอง" />
+                      <Label className="text-sm font-medium text-gray-700">ตู้ที่เลือก</Label>
+                      <Select value={selectedLocker} onValueChange={setSelectedLocker}>
+                        <SelectTrigger className="border-blue-200 focus:border-blue-400">
+                          <SelectValue placeholder="เลือกตู้" />
                         </SelectTrigger>
                         <SelectContent>
                           {availableLockers.map((locker) => (
-                            <SelectItem key={locker.id} value={locker.id.toString()}>
+                            <SelectItem key={locker.id} value={locker.code}>
                               <div className="flex items-center space-x-2">
-                                <Shield className="h-4 w-4 text-blue-600" />
-                                <span>{locker.code} - {locker.location}</span>
+                                <LockOpen className="h-4 w-4 text-green-600" />
+                                <span>ตู้ {locker.code} - {locker.location}</span>
                               </div>
                             </SelectItem>
                           ))}
@@ -488,185 +425,177 @@ export default function LockerReservationsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="date" className="text-sm font-medium">วันที่</Label>
+                      <Label htmlFor="reservation-date" className="text-sm font-medium text-gray-700">
+                        วันที่จอง
+                      </Label>
                       <Input
-                        id="date"
+                        id="reservation-date"
                         type="date"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
                         max={maxDateString}
-                        required
-                        className="w-full"
+                        className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                        readOnly
                       />
                     </div>
 
-                    {/* Payment section */}
-                    <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+                    <Card className="bg-blue-50/50 border-blue-200">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-blue-800 flex items-center">
+                        <CardTitle className="text-lg text-blue-800 flex items-center">
                           <CreditCard className="h-5 w-5 mr-2" />
-                          ข้อมูลการชำระเงิน
+                          วิธีการชำระเงิน
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="p-3 bg-white rounded-lg border">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm text-gray-600">ราคาค่าบริการตู้เก็บของ</p>
-                              <p className="text-2xl font-bold text-blue-600">฿{lockerPrice.toLocaleString()}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg bg-white">
+                              <Banknote className="h-5 w-5 text-green-600" />
+                              <span className="text-sm font-medium">เงินสด</span>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">ระยะเวลา</p>
-                              <p className="text-lg font-semibold text-gray-900">ต่อวัน</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">วิธีชำระเงิน</Label>
-                          <div className="grid grid-cols-2 gap-3">
                             <Button
                               type="button"
                               variant={paymentMethod === "cash" ? "default" : "outline"}
-                              className="h-16 flex flex-col items-center space-y-2"
+                              className={`w-full ${
+                                paymentMethod === "cash"
+                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                              }`}
                               onClick={() => setPaymentMethod("cash")}
                             >
-                              <Banknote className="h-5 w-5" />
-                              <span className="text-sm">จ่ายด้วยเงินสด</span>
+                              เลือก
                             </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2 p-3 border border-blue-200 rounded-lg bg-white">
+                              <CreditCard className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm font-medium">โอนธนาคาร</span>
+                            </div>
                             <Button
                               type="button"
                               variant={paymentMethod === "bank_transfer" ? "default" : "outline"}
-                              className="h-16 flex flex-col items-center space-y-2"
+                              className={`w-full ${
+                                paymentMethod === "bank_transfer"
+                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                              }`}
                               onClick={() => setPaymentMethod("bank_transfer")}
                             >
-                              <CreditCard className="h-5 w-5" />
-                              <span className="text-sm">โอนธนาคาร</span>
+                              เลือก
                             </Button>
                           </div>
                         </div>
                         
                         {paymentMethod === "bank_transfer" && (
-                          <div className="space-y-3 p-3 bg-blue-50 rounded-lg border">
-                            <div className="text-center">
-                              <p className="text-sm text-gray-600">โอนเงินเข้าบัญชี</p>
-                              <p className="text-lg font-bold text-blue-600">{bankAccountNumber}</p>
+                          <div className="space-y-3 p-4 bg-white rounded-lg border border-blue-200">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-700 mb-1">โอนเงินไปที่:</p>
+                              <p className="text-blue-600 font-mono">{bankAccountNumber}</p>
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="slip" className="text-sm font-medium">อัปโหลดหลักฐานการชำระเงิน</Label>
-                              <input
-                                ref={slipInputRef}
+                              <Label htmlFor="slip" className="text-sm font-medium text-gray-700">
+                                อัปโหลดสลิปการโอนเงิน
+                              </Label>
+                              <Input
+                                id="slip"
                                 type="file"
                                 accept="image/*"
-                                id="slip"
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                ref={slipInputRef}
                                 onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
-                                required
+                                className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
                               />
                             </div>
                           </div>
                         )}
                       </CardContent>
                     </Card>
+                  </div>
 
-                    <div className="flex justify-end space-x-3 pt-4">
-                      <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                        ยกเลิก
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={submitting}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                      >
-                        {submitting ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            <span>กำลังจอง...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Sparkles className="h-4 w-4" />
-                            <span>จองและชำระเงิน</span>
-                          </div>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+                  <div className="flex space-x-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={submitting || (paymentMethod === "bank_transfer" && !slipFile)}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    >
+                      {submitting ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>กำลังจอง...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Check className="h-4 w-4" />
+                          <span>ยืนยันการจอง</span>
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          {/* Reservations History - Similar to membership page layout */}
-          <div className="max-w-6xl mx-auto space-y-8">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold text-gray-900">การจองของคุณ</h2>
-              <p className="text-gray-600">ติดตามและจัดการการจองตู้เก็บของ</p>
-            </div>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800">การจองของฉัน</h2>
             
             {lockerReservations.length > 0 ? (
-              <div className="grid gap-6 max-w-4xl mx-auto">
+              <div className="space-y-4">
                 {lockerReservations.map((reservation) => (
-                  <Card key={reservation.id} className="relative overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full -translate-y-10 translate-x-10 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-                    <CardContent className="p-6 relative z-10">
+                  <Card key={reservation.id} className="bg-white/80 backdrop-blur-sm border-blue-100/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full">
-                            <Shield className="h-6 w-6 text-white" />
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <Lock className="h-6 w-6 text-blue-600" />
                           </div>
-                          <div className="space-y-2">
-                            <h3 className="text-xl font-bold text-gray-900 flex items-center">
-                              <Lock className="h-5 w-5 mr-2 text-blue-600" />
-                              ตู้: {reservation.locker_code}
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                              ตู้ {reservation.locker_code}
                             </h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                               <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                 <Calendar className="h-4 w-4 mr-2 text-blue-600" />
                                 {(() => {
-                                  if (!reservation.reservation_date || reservation.reservation_date === 'null' || reservation.reservation_date.trim() === '') {
-                                    return 'ไม่ระบุวันที่'
-                                  }
-                                  try {
-                                    const dateStr = reservation.reservation_date.toString()
-                                    let date
-                                    
-                                    if (dateStr.includes('T')) {
-                                      date = new Date(dateStr)
-                                    } else if (dateStr.includes('-')) {
-                                      const [year, month, day] = dateStr.split('-')
-                                      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-                                    } else {
-                                      date = new Date(dateStr)
-                                    }
-                                    
-                                    if (isNaN(date.getTime())) {
-                                      return 'รูปแบบวันที่ไม่ถูกต้อง'
-                                    }
-                                    
-                                    return date.toLocaleDateString("th-TH")
-                                  } catch (error) {
-                                    return 'รูปแบบวันที่ไม่ถูกต้อง'
-                                  }
+                                  const date = new Date(reservation.reservation_date)
+                                  const thaiMonths = [
+                                    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                                    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+                                  ]
+                                  return `${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`
                                 })()}
                               </span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                          <Badge className={`${getReservationStatusColor(reservation.status)} px-3 py-2 text-sm font-medium flex items-center space-x-1`}>
-                            {getReservationStatusIcon(reservation.status)}
-                            <span>{reservation.status}</span>
-                          </Badge>
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            onClick={() => handleCancelReservation(reservation.id)}
-                            className="hover:scale-105 transition-transform"
+                          <Badge
+                            variant="secondary"
+                            className={`${getReservationStatusColor(reservation.status)} border`}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            {reservation.status === "confirmed" && "ยืนยันแล้ว"}
+                            {reservation.status === "pending" && "รอยืนยัน"}
+                            {reservation.status === "cancelled" && "ยกเลิกแล้ว"}
+                          </Badge>
+                          {reservation.status !== "cancelled" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCancelReservation(reservation.id)}
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              ยกเลิก
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -674,21 +603,21 @@ export default function LockerReservationsPage() {
                 ))}
               </div>
             ) : (
-              <Card className="col-span-full text-center py-12 border-2 border-dashed border-gray-300 max-w-4xl mx-auto">
-                <CardContent className="space-y-4">
+              <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50 shadow-lg">
+                <CardContent className="text-center py-12">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                    <Shield className="h-8 w-8 text-gray-400" />
+                    <Lock className="h-8 w-8 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">ยังไม่มีการจองตู้</h3>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">ยังไม่มีการจอง</h3>
+                  <p className="text-gray-500 mb-6">
                     เริ่มจองตู้เก็บของเพื่อความปลอดภัยของสิ่งของ
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => setDialogOpen(true)}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-8 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-8 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg" 
                   >
                     <Plus className="h-5 w-5 mr-2" />
-                    จองตู้ใหม่
+                    เริ่มจอง
                   </Button>
                 </CardContent>
               </Card>

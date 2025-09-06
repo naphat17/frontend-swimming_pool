@@ -125,14 +125,26 @@ export function ReservationTable({
                       </Button>
                     </>
                   )}
-                  {item.status === "confirmed" && type === 'pool' && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onUpdateStatus(item.id, "completed")}
-                    >
-                      เสร็จสิ้น
-                    </Button>
+                  {item.status === "confirmed" && (
+                    <>
+                      {type === 'pool' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onUpdateStatus(item.id, "completed")}
+                        >
+                          เสร็จสิ้น
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onUpdateStatus(item.id, "cancelled")}
+                        title="ยกเลิกการจอง"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
                   {type === 'locker' && onDelete && (
                     <Button

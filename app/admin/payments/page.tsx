@@ -1,113 +1,117 @@
-"use client"
+"use client" // ใช้ Client Component เพื่อให้สามารถใช้ React hooks และ state ได้
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/components/auth-provider"
-import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Check, X, DollarSign, AlertCircle, Settings, TrendingUp, Users, Package, Waves, FileX, MessageSquare } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useEffect, useState } from "react" // React hooks สำหรับจัดการ state และ lifecycle
+import { useAuth } from "@/components/auth-provider" // Hook สำหรับจัดการ authentication
+import { useRouter } from "next/navigation" // Next.js router สำหรับ navigation
+import AdminLayout from "@/components/admin-layout" // Layout component สำหรับหน้า admin
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card" // Card components สำหรับแสดงข้อมูล
+import { Button } from "@/components/ui/button" // Button component
+import { Input } from "@/components/ui/input" // Input component สำหรับรับข้อมูล
+import { Badge } from "@/components/ui/badge" // Badge component สำหรับแสดงสถานะ
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Select dropdown components
+import { useToast } from "@/hooks/use-toast" // Hook สำหรับแสดง toast notifications
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table" // Table components สำหรับแสดงข้อมูลในรูปแบบตาราง
+import { Search, Check, X, DollarSign, AlertCircle, Settings, TrendingUp, Users, Package, Waves, FileX, MessageSquare } from "lucide-react" // Icons จาก Lucide React
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog" // Dialog components สำหรับ modal
+import { Label } from "@/components/ui/label" // Label component สำหรับ form labels
+import { Textarea } from "@/components/ui/textarea" // Textarea component สำหรับข้อความยาว
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Tabs components สำหรับแสดงข้อมูลแบบแท็บ
 
+// Interface สำหรับกำหนดโครงสร้างข้อมูลการชำระเงิน
 interface Payment {
-  id: number
-  user_name: string
-  user_email: string
-  amount: number
-  status: string
-  payment_method: string
-  transaction_id: string
-  created_at: string
-  membership_type?: string
-  notes?: string
-  slip_url?: string
-  payment_type: string
+  id: number // รหัสการชำระเงิน
+  user_name: string // ชื่อผู้ใช้
+  user_email: string // อีเมลผู้ใช้
+  amount: number // จำนวนเงิน
+  status: string // สถานะการชำระเงิน (pending, completed, failed, refunded)
+  payment_method: string // วิธีการชำระเงิน (credit_card, bank_transfer, cash)
+  transaction_id: string // รหัสอ้างอิงการทำรายการ
+  created_at: string // วันที่สร้างรายการ
+  membership_type?: string // ประเภทสมาชิกภาพ (optional)
+  notes?: string // หมายเหตุ (optional)
+  slip_url?: string // URL ของสลิปการโอนเงิน (optional)
+  payment_type: string // ประเภทการชำระเงิน (การจองสระว่ายน้ำ, การจองตู้เก็บของ, สมาชิกรายปี)
 }
 
+// Component หลักสำหรับหน้าจัดการการชำระเงินของ Admin
 export default function AdminPaymentsPage() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [dateFilter, setDateFilter] = useState("all")
-  const { toast } = useToast()
-  const [priceDialogOpen, setPriceDialogOpen] = useState(false)
-  const [userCategories, setUserCategories] = useState<any[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<any>(null)
-  const [newAnnualPrice, setNewAnnualPrice] = useState('')
-  const [newSessionPrice, setNewSessionPrice] = useState('')
+  const { user } = useAuth() // ดึงข้อมูลผู้ใช้ที่ล็อกอินอยู่
+  const router = useRouter() // Router สำหรับ navigation
+  const [payments, setPayments] = useState<Payment[]>([]) // State เก็บรายการการชำระเงินทั้งหมด
+  const [loading, setLoading] = useState(true) // State สำหรับแสดงสถานะ loading
+  const [searchTerm, setSearchTerm] = useState("") // State สำหรับคำค้นหา
+  const [statusFilter, setStatusFilter] = useState("all") // State สำหรับกรองตามสถานะ
+  const [dateFilter, setDateFilter] = useState("all") // State สำหรับกรองตามวันที่
+  const { toast } = useToast() // Hook สำหรับแสดง toast notifications
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false) // State สำหรับเปิด/ปิด dialog แก้ไขราคา
+  const [userCategories, setUserCategories] = useState<any[]>([]) // State เก็บข้อมูลประเภทผู้ใช้
+  const [selectedCategory, setSelectedCategory] = useState<any>(null) // State เก็บประเภทผู้ใช้ที่เลือก
+  const [newAnnualPrice, setNewAnnualPrice] = useState('') // State สำหรับราคาสมาชิกรายปีใหม่
+  const [newSessionPrice, setNewSessionPrice] = useState('') // State สำหรับราคาต่อครั้งใหม่
 
-  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false)
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
-  const [confirmationAction, setConfirmationAction] = useState<"completed" | "failed" | "refunded" | null>(null)
-
-
+  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false) // State สำหรับเปิด/ปิด dialog ยืนยัน
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null) // State เก็บการชำระเงินที่เลือก
+  const [confirmationAction, setConfirmationAction] = useState<"completed" | "failed" | "refunded" | null>(null) // State เก็บการกระทำที่จะดำเนินการ
 
 
-  // Ensure numeric amount for correct calculations and rendering
+
+
+  // ฟังก์ชันสำหรับแปลงจำนวนเงินให้เป็นตัวเลขที่ถูกต้อง เพื่อใช้ในการคำนวณและแสดงผล
   const normalizeAmount = (amount: unknown) => {
-    const n = typeof amount === "number" ? amount : Number.parseFloat(String(amount ?? 0))
-    return Number.isFinite(n) ? n : 0
+    const n = typeof amount === "number" ? amount : Number.parseFloat(String(amount ?? 0)) // แปลงเป็นตัวเลข
+    return Number.isFinite(n) ? n : 0 // ตรวจสอบว่าเป็นตัวเลขที่ถูกต้อง ถ้าไม่ใช่ให้คืนค่า 0
   }
 
+  // useEffect สำหรับตรวจสอบสิทธิ์และโหลดข้อมูลเมื่อ component mount หรือเมื่อ dependencies เปลี่ยนแปลง
   useEffect(() => {
-    if (user && user.role !== "admin") {
-      router.push("/dashboard")
+    if (user && user.role !== "admin") { // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
+      router.push("/dashboard") // ถ้าไม่ใช่ admin ให้ redirect ไปหน้า dashboard
       return
     }
 
-    fetchPayments()
-    fetchUserCategories()
-  }, [user, router, statusFilter, dateFilter])
+    fetchPayments() // โหลดข้อมูลการชำระเงิน
+    fetchUserCategories() // โหลดข้อมูลประเภทผู้ใช้
+  }, [user, router, statusFilter, dateFilter]) // dependencies ที่จะทำให้ useEffect ทำงานใหม่เมื่อมีการเปลี่ยนแปลง
 
 
 
+  // ฟังก์ชันสำหรับดึงข้อมูลการชำระเงินจาก API
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง authentication token จาก localStorage
       
-      if (!token) {
+      if (!token) { // ตรวจสอบว่ามี token หรือไม่
         toast({
           title: "Authentication Error",
           description: "No authentication token found. Please login again.",
           variant: "destructive",
         })
-        router.push("/login")
+        router.push("/login") // redirect ไปหน้า login
         return
       }
       
-      const queryParams = new URLSearchParams()
+      const queryParams = new URLSearchParams() // สร้าง query parameters
       if (dateFilter !== "all") {
-        queryParams.append("dateFilter", dateFilter)
+        queryParams.append("dateFilter", dateFilter) // เพิ่ม date filter ถ้ามีการเลือก
       }
 
-      const url = `https://backend-l7q9.onrender.com/api/admin/payments?${queryParams.toString()}`
+      const url = `https://backend-l7q9.onrender.com/api/admin/payments?${queryParams.toString()}` // สร้าง URL สำหรับ API call
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }, // ส่ง token ใน header
       })
 
-      if (response.ok) {
+      if (response.ok) { // ถ้า response สำเร็จ
         const data = await response.json()
-        setPayments(data.payments || [])
-      } else if (response.status === 401 || response.status === 403) {
+        setPayments(data.payments || []) // อัปเดต state ด้วยข้อมูลที่ได้รับ
+      } else if (response.status === 401 || response.status === 403) { // ถ้า authentication ล้มเหลว
         toast({
           title: "Authentication Error",
           description: "Your session has expired. Please login again.",
           variant: "destructive",
         })
-        localStorage.removeItem("token")
-        router.push("/login")
-      } else {
+        localStorage.removeItem("token") // ลบ token ที่หมดอายุ
+        router.push("/login") // redirect ไปหน้า login
+      } else { // ถ้ามี error อื่นๆ
         const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
         toast({
           title: "Error",
@@ -115,7 +119,7 @@ export default function AdminPaymentsPage() {
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch (error) { // จัดการ network errors
       console.error("Error fetching payments:", error)
       toast({
         title: "Network Error",
@@ -123,29 +127,30 @@ export default function AdminPaymentsPage() {
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      setLoading(false) // ปิดสถานะ loading
     }
   }
 
+  // ฟังก์ชันสำหรับดึงข้อมูลประเภทผู้ใช้จาก API
   const fetchUserCategories = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง authentication token
       
-      if (!token) {
+      if (!token) { // ถ้าไม่มี token ให้หยุดการทำงาน
         return
       }
       
       const response = await fetch("https://backend-l7q9.onrender.com/api/admin/user-categories", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }, // ส่ง token ใน header
       })
 
-      if (response.ok) {
+      if (response.ok) { // ถ้า response สำเร็จ
         const data = await response.json()
-        setUserCategories(data.categories || [])
-      } else if (response.status === 401 || response.status === 403) {
+        setUserCategories(data.categories || []) // อัปเดต state ด้วยข้อมูลประเภทผู้ใช้
+      } else if (response.status === 401 || response.status === 403) { // ถ้า authentication ล้มเหลว
         console.log("Authentication failed for user categories")
       }
-    } catch (error) {
+    } catch (error) { // จัดการ errors
       console.error("Error fetching user categories:", error)
     }
   }
@@ -154,41 +159,42 @@ export default function AdminPaymentsPage() {
 
 
 
+  // ฟังก์ชันสำหรับอัปเดตราคาของประเภทผู้ใช้
   const handleUpdateCategoryPrice = async () => {
-    if (!selectedCategory) return
+    if (!selectedCategory) return // ตรวจสอบว่ามีการเลือกประเภทผู้ใช้หรือไม่
 
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง authentication token
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/user-categories/${selectedCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // ส่ง token ใน header
         },
-        body: JSON.stringify({
-          annual_price: parseFloat(newAnnualPrice),
-          pay_per_session_price: parseFloat(newSessionPrice)
+        body: JSON.stringify({ // ส่งข้อมูลราคาใหม่
+          annual_price: parseFloat(newAnnualPrice), // ราคาสมาชิกรายปี
+          pay_per_session_price: parseFloat(newSessionPrice) // ราคาต่อครั้ง
         }),
       })
 
-      if (response.ok) {
+      if (response.ok) { // ถ้าอัปเดตสำเร็จ
         toast({
           title: "อัปเดตราคาสำเร็จ",
           description: `ราคาสำหรับ ${selectedCategory.name} ได้รับการอัปเดตแล้ว`,
         })
-        fetchUserCategories()
-        setPriceDialogOpen(false)
-        setSelectedCategory(null)
-        setNewAnnualPrice('')
-        setNewSessionPrice('')
-      } else {
+        fetchUserCategories() // โหลดข้อมูลประเภทผู้ใช้ใหม่
+        setPriceDialogOpen(false) // ปิด dialog
+        setSelectedCategory(null) // รีเซ็ตการเลือกประเภท
+        setNewAnnualPrice('') // รีเซ็ตราคารายปี
+        setNewSessionPrice('') // รีเซ็ตราคาต่อครั้ง
+      } else { // ถ้ามี error
         toast({
           title: "อัปเดตไม่สำเร็จ",
           description: "ไม่สามารถอัปเดตราคาได้",
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch (error) { // จัดการ network errors
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถอัปเดตราคาได้",
@@ -197,145 +203,155 @@ export default function AdminPaymentsPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับเปิด dialog แก้ไขราคาประเภทผู้ใช้
   const openCategoryPriceDialog = (category: any) => {
-    setSelectedCategory(category)
-    setNewAnnualPrice(String(category.annual_price))
-    setNewSessionPrice(String(category.pay_per_session_price))
-    setPriceDialogOpen(true)
+    setSelectedCategory(category) // เซ็ตประเภทที่เลือก
+    setNewAnnualPrice(String(category.annual_price)) // เซ็ตราคารายปีปัจจุบัน
+    setNewSessionPrice(String(category.pay_per_session_price)) // เซ็ตราคาต่อครั้งปัจจุบัน
+    setPriceDialogOpen(true) // เปิด dialog
   }
 
+  // ฟังก์ชันสำหรับเปิด dialog ยืนยันการดำเนินการกับการชำระเงิน
   const openConfirmationDialog = (payment: Payment, action: "completed" | "failed" | "refunded") => {
-    setSelectedPayment(payment)
-    setConfirmationAction(action)
-    setConfirmationDialogOpen(true)
+    setSelectedPayment(payment) // เซ็ตการชำระเงินที่เลือก
+    setConfirmationAction(action) // เซ็ตการกระทำที่จะดำเนินการ (สำเร็จ/ไม่สำเร็จ/คืนเงิน)
+    setConfirmationDialogOpen(true) // เปิด dialog ยืนยัน
   }
 
 
 
+  // ฟังก์ชันสำหรับยืนยันและอัปเดตสถานะการชำระเงิน
   const handleConfirmPayment = async () => {
-    if (!selectedPayment || !confirmationAction) return
+    if (!selectedPayment || !confirmationAction) return // ตรวจสอบว่ามีการเลือกการชำระเงินและการกระทำ
 
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง authentication token
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/payments/${selectedPayment.id}/confirm`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // ส่ง token ใน header
         },
-        body: JSON.stringify({ status: confirmationAction }),
+        body: JSON.stringify({ status: confirmationAction }), // ส่งสถานะใหม่
       })
 
-      if (response.ok) {
+      if (response.ok) { // ถ้าอัปเดตสำเร็จ
         toast({
           title: "อัปเดตสถานะสำเร็จ",
           description: `สถานะการชำระเงินได้รับการเปลี่ยนเป็น ${getStatusText(confirmationAction)}`,
         })
-        fetchPayments()
-      } else {
+        fetchPayments() // โหลดข้อมูลการชำระเงินใหม่
+      } else { // ถ้ามี error
         toast({
           title: "อัปเดตไม่สำเร็จ",
           description: "ไม่สามารถอัปเดตสถานะได้",
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch (error) { // จัดการ network errors
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถอัปเดตสถานะได้",
         variant: "destructive",
       })
-    } finally {
-      setConfirmationDialogOpen(false)
-      setSelectedPayment(null)
-      setConfirmationAction(null)
+    } finally { // ทำความสะอาด state เมื่อเสร็จสิ้น
+      setConfirmationDialogOpen(false) // ปิด dialog
+      setSelectedPayment(null) // รีเซ็ตการเลือกการชำระเงิน
+      setConfirmationAction(null) // รีเซ็ตการกระทำ
     }
   }
 
+  // ฟังก์ชันสำหรับกรองข้อมูลการชำระเงินตามเงื่อนไขการค้นหาและสถานะ
   const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.payment_type.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = // ตรวจสอบว่าข้อมูลตรงกับคำค้นหาหรือไม่
+      payment.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || // ค้นหาจากชื่อผู้ใช้
+      payment.user_email.toLowerCase().includes(searchTerm.toLowerCase()) || // ค้นหาจากอีเมล
+      payment.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()) || // ค้นหาจากรหัสอ้างอิง
+      payment.payment_type.toLowerCase().includes(searchTerm.toLowerCase()) // ค้นหาจากประเภทการชำระเงิน
 
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter
+    const matchesStatus = statusFilter === "all" || payment.status === statusFilter // ตรวจสอบว่าตรงกับสถานะที่เลือกหรือไม่
 
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus // คืนค่าเฉพาะรายการที่ตรงกับทั้งสองเงื่อนไข
   })
 
+  // ฟังก์ชันสำหรับกำหนดสีของ Badge ตามสถานะการชำระเงิน
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "completed": // สำเร็จ - สีเขียว
         return "bg-green-100 text-green-800"
-      case "pending":
+      case "pending": // รอดำเนินการ - สีเหลือง
         return "bg-yellow-100 text-yellow-800"
-      case "failed":
+      case "failed": // ไม่สำเร็จ - สีแดง
         return "bg-red-100 text-red-800"
-      case "refunded":
+      case "refunded": // คืนเงิน - สีน้ำเงิน
         return "bg-blue-100 text-blue-800"
-      default:
+      default: // สถานะอื่นๆ - สีเทา
         return "bg-gray-100 text-gray-800"
     }
   }
 
+  // ฟังก์ชันสำหรับแปลงสถานะเป็นข้อความภาษาไทย
   const getStatusText = (status: string) => {
     switch (status) {
-      case "completed":
+      case "completed": // แปลงเป็น "สำเร็จ"
         return "สำเร็จ"
-      case "pending":
+      case "pending": // แปลงเป็น "รอดำเนินการ"
         return "รอดำเนินการ"
-      case "failed":
+      case "failed": // แปลงเป็น "ไม่สำเร็จ"
         return "ไม่สำเร็จ"
-      case "refunded":
+      case "refunded": // แปลงเป็น "คืนเงิน"
         return "คืนเงิน"
-      default:
+      default: // คืนค่าสถานะเดิมถ้าไม่ตรงกับเงื่อนไขใดๆ
         return status
     }
   }
 
+  // ฟังก์ชันสำหรับแปลงวิธีการชำระเงินเป็นข้อความภาษาไทย
   const getPaymentMethodText = (method: string) => {
     switch (method) {
-      case "credit_card":
+      case "credit_card": // แปลงเป็น "บัตรเครดิต"
         return "บัตรเครดิต"
-      case "bank_transfer":
+      case "bank_transfer": // แปลงเป็น "โอนเงิน"
         return "โอนเงิน"
-      case "cash":
+      case "cash": // แปลงเป็น "เงินสด"
         return "เงินสด"
-      default:
+      default: // คืนค่าวิธีการชำระเงินเดิมถ้าไม่ตรงกับเงื่อนไขใดๆ
         return method
     }
   }
 
-  // คำนวณรายได้รวมจาก payment ที่สำเร็จ
+  // คำนวณรายได้รวมจากการชำระเงินที่สำเร็จเท่านั้น
   const totalRevenue = payments.reduce((sum, p) => sum + (p.status === "completed" ? normalizeAmount(p.amount) : 0), 0)
 
-  const pendingPayments = payments.filter((p) => p.status === "pending").length
-  const completedPayments = payments.filter((p) => p.status === "completed").length
-  const failedPayments = payments.filter((p) => p.status === "failed").length
-  const refundedPayments = payments.filter((p) => p.status === "refunded").length
+  // นับจำนวนการชำระเงินตามสถานะต่างๆ
+  const pendingPayments = payments.filter((p) => p.status === "pending").length // จำนวนรายการรอดำเนินการ
+  const completedPayments = payments.filter((p) => p.status === "completed").length // จำนวนรายการสำเร็จ
+  const failedPayments = payments.filter((p) => p.status === "failed").length // จำนวนรายการไม่สำเร็จ
+  const refundedPayments = payments.filter((p) => p.status === "refunded").length // จำนวนรายการคืนเงิน
 
+  // คำนวณรายได้แยกตามประเภทการชำระเงิน (เฉพาะรายการที่สำเร็จ)
   const poolRevenue = payments
-    .filter((p) => p.payment_type === "การจองสระว่ายน้ำ" && p.status === "completed")
-    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0)
+    .filter((p) => p.payment_type === "การจองสระว่ายน้ำ" && p.status === "completed") // กรองเฉพาะการจองสระที่สำเร็จ
+    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0) // รวมจำนวนเงิน
 
   const lockerRevenue = payments
-    .filter((p) => p.payment_type === "การจองตู้เก็บของ" && p.status === "completed")
-    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0)
+    .filter((p) => p.payment_type === "การจองตู้เก็บของ" && p.status === "completed") // กรองเฉพาะการจองตู้ที่สำเร็จ
+    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0) // รวมจำนวนเงิน
 
   const annualMembershipRevenue = payments
-    .filter((p) => p.payment_type === "สมาชิกรายปี" && p.status === "completed")
-    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0)
+    .filter((p) => p.payment_type === "สมาชิกรายปี" && p.status === "completed") // กรองเฉพาะสมาชิกรายปีที่สำเร็จ
+    .reduce((sum, p) => sum + normalizeAmount(p.amount), 0) // รวมจำนวนเงิน
 
-  // สถิติตามประเภทการชำระ
-  const poolReservations = payments.filter((p) => p.payment_type === "การจองสระว่ายน้ำ").length
-  const lockerPayments = payments.filter((p) => p.payment_type === "การจองตู้เก็บของ").length
-  const membershipPayments = payments.filter((p) => p.payment_type.includes("สมาชิกภาพ")).length
-  const annualMembershipPayments = payments.filter((p) => p.payment_type === "สมาชิกรายปี").length
+  // สถิติจำนวนการชำระเงินตามประเภท (ทุกสถานะ)
+  const poolReservations = payments.filter((p) => p.payment_type === "การจองสระว่ายน้ำ").length // จำนวนการจองสระทั้งหมด
+  const lockerPayments = payments.filter((p) => p.payment_type === "การจองตู้เก็บของ").length // จำนวนการจองตู้ทั้งหมด
+  const membershipPayments = payments.filter((p) => p.payment_type.includes("สมาชิกภาพ")).length // จำนวนการชำระสมาชิกภาพทั้งหมด
+  const annualMembershipPayments = payments.filter((p) => p.payment_type === "สมาชิกรายปี").length // จำนวนสมาชิกรายปีทั้งหมด
 
-  const poolReservationPayments = filteredPayments.filter(p => p.payment_type === 'การจองสระว่ายน้ำ');
-  const lockerReservationPayments = filteredPayments.filter(p => p.payment_type === 'การจองตู้เก็บของ');
-  const annualMembershipPaymentsList = filteredPayments.filter(p => p.payment_type === 'สมาชิกรายปี');
+  // รายการการชำระเงินที่ผ่านการกรองแล้ว แยกตามประเภท
+  const poolReservationPayments = filteredPayments.filter(p => p.payment_type === 'การจองสระว่ายน้ำ'); // รายการจองสระที่ผ่านการกรอง
+  const lockerReservationPayments = filteredPayments.filter(p => p.payment_type === 'การจองตู้เก็บของ'); // รายการจองตู้ที่ผ่านการกรอง
+  const annualMembershipPaymentsList = filteredPayments.filter(p => p.payment_type === 'สมาชิกรายปี'); // รายการสมาชิกรายปีที่ผ่านการกรอง
 
   if (loading) {
     return (

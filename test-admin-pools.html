@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ Admin Pools API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h3 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .success {
+            color: #27ae60;
+            background-color: #d5f4e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fdf2f2;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            color: #2980b9;
+            background-color: #ebf3fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .token-display {
+            word-break: break-all;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏊‍♂️ ทดสอบ Admin Pools API</h1>
+        
+        <div class="info">
+            <strong>📋 ขั้นตอนการทดสอบ:</strong><br>
+            1. Login ด้วย admin credentials<br>
+            2. ใช้ token ที่ได้รับเพื่อเข้าถึง admin pools endpoint<br>
+            3. ตรวจสอบผลลัพธ์
+        </div>
+
+        <!-- ส่วน Login -->
+        <div class="section">
+            <h3>🔐 1. Admin Login</h3>
+            <div>
+                <input type="text" id="username" placeholder="Username" value="admin">
+                <input type="password" id="password" placeholder="Password" value="admin123">
+                <button onclick="adminLogin()">Login</button>
+            </div>
+            <div id="loginResult"></div>
+            <div id="tokenDisplay"></div>
+        </div>
+
+        <!-- ส่วนทดสอบ Pools API -->
+        <div class="section">
+            <h3>🏊‍♂️ 2. ทดสอบ Admin Pools API</h3>
+            <div>
+                <button onclick="testAdminPools()">GET /api/admin/pools</button>
+                <button onclick="testAdminPoolsStatus()">GET /api/admin/pools/status</button>
+            </div>
+            <div id="poolsResult"></div>
+        </div>
+
+        <!-- ส่วนแสดงข้อมูล Debug -->
+        <div class="section">
+            <h3>🔍 3. Debug Information</h3>
+            <div>
+                <button onclick="checkTokenValidity()">ตรวจสอบ Token</button>
+                <button onclick="showRequestHeaders()">แสดง Headers</button>
+            </div>
+            <div id="debugResult"></div>
+        </div>
+
+        <!-- ส่วนแก้ไขปัญหา -->
+        <div class="section">
+            <h3>🛠️ 4. วิธีแก้ไขปัญหา 403 Forbidden</h3>
+            <div class="info">
+                <strong>สาเหตุที่เป็นไปได้:</strong><br>
+                • ไม่มี admin user ในระบบ<br>
+                • Token หมดอายุ (24 ชั่วโมง)<br>
+                • ไม่ได้ส่ง Authorization header<br>
+                • Role ไม่ใช่ admin<br>
+                • JWT Secret ไม่ตรงกัน<br><br>
+                
+                <strong>วิธีแก้ไข:</strong><br>
+                1. สร้าง admin user: <code>cd api && node scripts/create-admin.js</code><br>
+                2. ตรวจสอบ server ทำงานที่ port 3001<br>
+                3. Login ใหม่เพื่อรับ token ใหม่<br>
+                4. ตรวจสอบ Authorization header
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://backend-l7q9.onrender.com/api';
+        let currentToken = null;
+
+        // ฟังก์ชัน Login
+        async function adminLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            const tokenDiv = document.getElementById('tokenDisplay');
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentToken = data.token;
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Login สำเร็จ!<br>
+                            User: ${data.user.username}<br>
+                            Role: ${data.user.role}<br>
+                            Status: ${data.user.status}
+                        </div>
+                    `;
+                    
+                    tokenDiv.innerHTML = `
+                        <div class="token-display">
+                            <strong>🔑 Token:</strong><br>
+                            ${data.token}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Login ล้มเหลว: ${data.message}
+                        </div>
+                    `;
+                    tokenDiv.innerHTML = '';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ เกิดข้อผิดพลาด: ${error.message}<br>
+                        ตรวจสอบว่า API Server ทำงานที่ port 3001
+                    </div>
+                `;
+            }
+        }
+
+        // ฟังก์ชันทดสอบ Admin Pools
+        async function testAdminPools() {
+            await testEndpoint('/admin/pools', 'GET');
+        }
+
+        async function testAdminPoolsStatus() {
+            await testEndpoint('/admin/pools/status', 'GET');
+        }
+
+        // ฟังก์ชันทดสอบ endpoint ทั่วไป
+        async function testEndpoint(endpoint, method = 'GET') {
+            const resultDiv = document.getElementById('poolsResult');
+
+            if (!currentToken) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ กรุณา Login ก่อน
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${method} ${endpoint} สำเร็จ!
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ ${response.status} ${response.statusText}<br>
+                            Endpoint: ${method} ${endpoint}<br>
+                            Message: ${data.message || 'ไม่มีข้อความ'}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ เกิดข้อผิดพลาด: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ฟังก์ชันตรวจสอบ Token
+        function checkTokenValidity() {
+            const debugDiv = document.getElementById('debugResult');
+
+            if (!currentToken) {
+                debugDiv.innerHTML = `
+                    <div class="error">
+                        ❌ ไม่มี Token
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                // Decode JWT token (แค่ payload, ไม่ verify signature)
+                const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                const now = Math.floor(Date.now() / 1000);
+                const isExpired = payload.exp < now;
+
+                debugDiv.innerHTML = `
+                    <div class="${isExpired ? 'error' : 'success'}">
+                        <strong>🔍 Token Information:</strong><br>
+                        User ID: ${payload.id}<br>
+                        Username: ${payload.username}<br>
+                        Role: ${payload.role}<br>
+                        Issued At: ${new Date(payload.iat * 1000).toLocaleString('th-TH')}<br>
+                        Expires At: ${new Date(payload.exp * 1000).toLocaleString('th-TH')}<br>
+                        Status: ${isExpired ? '❌ หมดอายุแล้ว' : '✅ ยังใช้งานได้'}
+                    </div>
+                `;
+            } catch (error) {
+                debugDiv.innerHTML = `
+                    <div class="error">
+                        ❌ ไม่สามารถ decode token: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ฟังก์ชันแสดง Headers
+        function showRequestHeaders() {
+            const debugDiv = document.getElementById('debugResult');
+
+            if (!currentToken) {
+                debugDiv.innerHTML = `
+                    <div class="error">
+                        ❌ ไม่มี Token
+                    </div>
+                `;
+                return;
+            }
+
+            debugDiv.innerHTML = `
+                <div class="info">
+                    <strong>📋 Request Headers ที่จะส่ง:</strong>
+                    <pre>{
+  "Authorization": "Bearer ${currentToken.substring(0, 50)}...",
+  "Content-Type": "application/json"
+}</pre>
+                </div>
+            `;
+        }
+
+        // Auto-focus username field
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>

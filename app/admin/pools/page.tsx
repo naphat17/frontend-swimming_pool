@@ -1,18 +1,19 @@
-"use client"
+"use client" // บังคับให้ component นี้ทำงานฝั่ง client
 
-import type React from "react"
+import type React from "react" // นำเข้า type ของ React
 
+// นำเข้า React hooks และ components ที่จำเป็น
 import { useEffect, useState } from "react"
-import { useAuth } from "@/components/auth-provider"
-import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-provider" // hook สำหรับจัดการ authentication
+import { useRouter } from "next/navigation" // hook สำหรับ navigation ใน Next.js
+import AdminLayout from "@/components/admin-layout" // layout สำหรับหน้า admin
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card" // UI components สำหรับ card
+import { Button } from "@/components/ui/button" // UI component สำหรับปุ่ม
+import { Input } from "@/components/ui/input" // UI component สำหรับ input field
+import { Label } from "@/components/ui/label" // UI component สำหรับ label
+import { Badge } from "@/components/ui/badge" // UI component สำหรับ badge
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // UI components สำหรับ dropdown
+import { useToast } from "@/hooks/use-toast" // hook สำหรับแสดง toast notification
 import {
   Dialog,
   DialogContent,
@@ -20,39 +21,43 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Switch } from "@/components/ui/switch"
-import { Plus, Edit, MapPin, Users, Settings, Wind, Calendar, ChevronLeft, ChevronRight } from "lucide-react"
+} from "@/components/ui/dialog" // UI components สำหรับ modal dialog
+import { Switch } from "@/components/ui/switch" // UI component สำหรับ toggle switch
+import { Plus, Edit, MapPin, Users, Settings, Wind, Calendar, ChevronLeft, ChevronRight } from "lucide-react" // icons จาก lucide-react
 
+// Interface สำหรับข้อมูลสระว่ายน้ำ
 interface Pool {
-  id: number
-  name: string
-  description: string
-  capacity: number
-  status: string
-  schedules?: Array<{
-    day_of_week: string
-    open_time: string
-    close_time: string
-    is_active: boolean
+  id: number // รหัสสระ
+  name: string // ชื่อสระ
+  description: string // คำอธิบายสระ
+  capacity: number // ความจุของสระ (จำนวนคน)
+  status: string // สถานะสระ (available, maintenance, closed)
+  schedules?: Array<{ // ตารางเวลาเปิด-ปิดของสระ (optional)
+    day_of_week: string // วันในสัปดาห์
+    open_time: string // เวลาเปิด
+    close_time: string // เวลาปิด
+    is_active: boolean // สถานะการเปิดใช้งาน
   }>
 }
 
+// Interface สำหรับสถิติการจองสระ
 interface BookingStats {
-  date: string
-  total_bookings: number
-  available_slots: number
-  pool_id: number
+  date: string // วันที่
+  total_bookings: number // จำนวนการจองทั้งหมด
+  available_slots: number // จำนวนช่วงเวลาที่ว่าง
+  pool_id: number // รหัสสระ
 }
 
+// Interface สำหรับข้อมูลวันในปฏิทิน
 interface CalendarDay {
-  date: string
-  day: number
-  isCurrentMonth: boolean
-  isToday: boolean
-  bookingStats?: BookingStats
+  date: string // วันที่ในรูปแบบ string
+  day: number // วันที่ในเดือน
+  isCurrentMonth: boolean // เป็นวันในเดือนปัจจุบันหรือไม่
+  isToday: boolean // เป็นวันนี้หรือไม่
+  bookingStats?: BookingStats // สถิติการจอง (optional)
 }
 
+// Object สำหรับแปลงชื่อวันจากภาษาอังกฤษเป็นภาษาไทย
 const dayNames = {
   monday: "จันทร์",
   tuesday: "อังคาร",
@@ -63,23 +68,32 @@ const dayNames = {
   sunday: "อาทิตย์",
 }
 
+// Array ของวันในสัปดาห์ (ใช้สำหรับ loop และการจัดการตารางเวลา)
 const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
+// Component หลักสำหรับหน้าจัดการสระว่ายน้ำของ admin
 export default function AdminPoolsPage() {
+  // ดึงข้อมูล user จาก auth context
   const { user } = useAuth()
   const router = useRouter()
-  const [pools, setPools] = useState<Pool[]>([])
-  const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingPool, setEditingPool] = useState<Pool | null>(null)
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
-  const [selectedPool, setSelectedPool] = useState<Pool | null>(null)
+  
+  // State สำหรับจัดการข้อมูลสระว่ายน้ำ
+  const [pools, setPools] = useState<Pool[]>([]) // รายการสระทั้งหมด
+  const [loading, setLoading] = useState(true) // สถานะการโหลดข้อมูล
+  const [dialogOpen, setDialogOpen] = useState(false) // สถานะการเปิด dialog สำหรับเพิ่มสระใหม่
+  const [editingPool, setEditingPool] = useState<Pool | null>(null) // สระที่กำลังแก้ไข
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false) // สถานะการเปิด dialog สำหรับแก้ไขตารางเวลา
+  const [selectedPool, setSelectedPool] = useState<Pool | null>(null) // สระที่เลือกสำหรับแก้ไขตารางเวลา
+  
+  // State สำหรับข้อมูลสระใหม่
   const [newPoolData, setNewPoolData] = useState({
-    name: "",
-    description: "",
-    capacity: 10,
-    status: "available",
+    name: "", // ชื่อสระ
+    description: "", // คำอธิบาย
+    capacity: 10, // ความจุเริ่มต้น
+    status: "available", // สถานะเริ่มต้น
   })
+  
+  // State สำหรับตารางเวลาเปิด-ปิดสระ (เริ่มต้นทุกวัน 06:00-22:00)
   const [schedules, setSchedules] = useState(
     daysOfWeek.map((day) => ({
       day_of_week: day,
@@ -88,13 +102,18 @@ export default function AdminPoolsPage() {
       is_active: true,
     })),
   )
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [bookingStats, setBookingStats] = useState<BookingStats[]>([])
-  const [calendarData, setCalendarData] = useState<CalendarDay[]>([])
-  const [calendarLoading, setCalendarLoading] = useState(false)
-  const [selectedPoolForCalendar, setSelectedPoolForCalendar] = useState<Pool | null>(null)
+  
+  // State สำหรับปฏิทินและสถิติการจอง
+  const [currentDate, setCurrentDate] = useState(new Date()) // วันที่ปัจจุบันในปฏิทิน
+  const [bookingStats, setBookingStats] = useState<BookingStats[]>([]) // สถิติการจองแต่ละวัน
+  const [calendarData, setCalendarData] = useState<CalendarDay[]>([]) // ข้อมูลวันในปฏิทิน
+  const [calendarLoading, setCalendarLoading] = useState(false) // สถานะการโหลดข้อมูลปฏิทิน
+  const [selectedPoolForCalendar, setSelectedPoolForCalendar] = useState<Pool | null>(null) // สระที่เลือกสำหรับแสดงในปฏิทิน
+  
+  // Hook สำหรับแสดง toast notification
   const { toast } = useToast()
 
+  // Effect สำหรับตรวจสอบสิทธิ์และโหลดข้อมูลสระเมื่อ component mount
   useEffect(() => {
     if (user && user.role !== "admin") {
       router.push("/dashboard")
@@ -104,25 +123,26 @@ export default function AdminPoolsPage() {
     fetchPools()
   }, [user, router])
 
+  // ฟังก์ชันสำหรับดึงข้อมูลสระทั้งหมดจาก API
   const fetchPools = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token") // ดึง token จาก localStorage
       const response = await fetch("https://backend-l7q9.onrender.com/api/admin/pools", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }, // ส่ง token ใน header
       })
 
       if (response.ok) {
         const data = await response.json()
-        setPools(data.pools || [])
+        setPools(data.pools || []) // อัปเดต state ด้วยข้อมูลสระ
       }
     } catch (error) {
       console.error("Error fetching pools:", error)
     } finally {
-      setLoading(false)
+      setLoading(false) // หยุดสถานะ loading
     }
   }
 
-  // Set default pool for calendar when pools are loaded
+  // Effect สำหรับตั้งค่าสระเริ่มต้นสำหรับปฏิทินเมื่อโหลดข้อมูลสระเสร็จ
   useEffect(() => {
     if (pools.length > 0 && !selectedPoolForCalendar) {
       const availablePool = pools.find(pool => pool.status === 'available') || pools[0]
@@ -130,25 +150,27 @@ export default function AdminPoolsPage() {
     }
   }, [pools])
 
-  // Fetch calendar data when pool is selected
+  // Effect สำหรับดึงข้อมูลปฏิทินเมื่อเลือกสระหรือเปลี่ยนเดือน
   useEffect(() => {
     if (selectedPoolForCalendar) {
       fetchCalendarData(selectedPoolForCalendar, currentDate)
     }
   }, [selectedPoolForCalendar, currentDate])
 
+  // ฟังก์ชันสำหรับดึงข้อมูลสถิติการจองสำหรับปฏิทิน
   const fetchCalendarData = async (pool: Pool, date: Date) => {
-    setCalendarLoading(true)
+    setCalendarLoading(true) // เริ่มสถานะ loading
     try {
       const token = localStorage.getItem("token")
       if (!token) {
-        generateCalendarDays(date, [])
+        generateCalendarDays(date, []) // ถ้าไม่มี token ให้สร้างปฏิทินว่าง
         return
       }
 
-      const year = date.getFullYear()
-      const month = date.getMonth() + 1
+      const year = date.getFullYear() // ดึงปี
+      const month = date.getMonth() + 1 // ดึงเดือน (+1 เพราะ getMonth() เริ่มจาก 0)
       
+      // เรียก API เพื่อดึงสถิติการจอง
       const response = await fetch(`https://backend-l7q9.onrender.com/api/admin/booking-stats?pool_id=${pool.id}&year=${year}&month=${month}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,67 +179,72 @@ export default function AdminPoolsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setBookingStats(data)
-        generateCalendarDays(date, data)
+        setBookingStats(data) // อัปเดตสถิติการจอง
+        generateCalendarDays(date, data) // สร้างข้อมูลปฏิทินพร้อมสถิติ
       } else {
-        generateCalendarDays(date, [])
+        generateCalendarDays(date, []) // ถ้า API error ให้สร้างปฏิทินว่าง
       }
     } catch (error) {
       console.error("Error fetching calendar data:", error)
-      generateCalendarDays(date, [])
+      generateCalendarDays(date, []) // ถ้าเกิด error ให้สร้างปฏิทินว่าง
     } finally {
-      setCalendarLoading(false)
+      setCalendarLoading(false) // หยุดสถานะ loading
     }
   }
 
+  // ฟังก์ชันสำหรับสร้างข้อมูลวันในปฏิทิน (42 วัน = 6 สัปดาห์)
   const generateCalendarDays = (date: Date, bookingStats: BookingStats[]) => {
     const year = date.getFullYear()
     const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
+    const firstDay = new Date(year, month, 1) // วันแรกของเดือน
+    const lastDay = new Date(year, month + 1, 0) // วันสุดท้ายของเดือน
     const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay())
+    startDate.setDate(startDate.getDate() - firstDay.getDay()) // เริ่มจากวันอาทิตย์ของสัปดาห์แรก
     
     const days: CalendarDay[] = []
     const today = new Date()
-    const thailandToday = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}))
+    const thailandToday = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Bangkok"})) // แปลงเป็นเวลาไทย
     
+    // สร้างข้อมูล 42 วัน (6 สัปดาห์)
     for (let i = 0; i < 42; i++) {
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
       
+      // แปลงวันที่เป็น string format YYYY-MM-DD
       const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
-      const stats = bookingStats.find(stat => stat.date === dateString)
+      const stats = bookingStats.find(stat => stat.date === dateString) // หาสถิติการจองของวันนี้
       
       const todayString = `${thailandToday.getFullYear()}-${String(thailandToday.getMonth() + 1).padStart(2, '0')}-${String(thailandToday.getDate()).padStart(2, '0')}`
       
       days.push({
         date: dateString,
         day: currentDate.getDate(),
-        isCurrentMonth: currentDate.getMonth() === month,
-        isToday: dateString === todayString,
-        bookingStats: stats
+        isCurrentMonth: currentDate.getMonth() === month, // เช็คว่าเป็นวันในเดือนปัจจุบันหรือไม่
+        isToday: dateString === todayString, // เช็คว่าเป็นวันนี้หรือไม่
+        bookingStats: stats // ข้อมูลสถิติการจอง
       })
     }
     
-    setCalendarData(days)
+    setCalendarData(days) // อัปเดต state
   }
 
+  // ฟังก์ชันสำหรับเปลี่ยนเดือนในปฏิทิน
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate)
     if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1)
+      newDate.setMonth(newDate.getMonth() - 1) // ไปเดือนก่อนหน้า
     } else {
-      newDate.setMonth(newDate.getMonth() + 1)
+      newDate.setMonth(newDate.getMonth() + 1) // ไปเดือนถัดไป
     }
-    setCurrentDate(newDate)
+    setCurrentDate(newDate) // อัปเดตวันที่ปัจจุบัน
     if (selectedPoolForCalendar) {
-      fetchCalendarData(selectedPoolForCalendar, newDate)
+      fetchCalendarData(selectedPoolForCalendar, newDate) // ดึงข้อมูลใหม่สำหรับเดือนใหม่
     }
   }
 
 
 
+  // ฟังก์ชันสำหรับดึงตารางเวลาของสระ
   const fetchPoolSchedule = async (poolId: number) => {
     try {
       const token = localStorage.getItem("token")
@@ -227,42 +254,46 @@ export default function AdminPoolsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setSchedules(data.schedules || [])
+        setSchedules(data.schedules || []) // อัปเดตตารางเวลา
       }
     } catch (error) {
       console.error("Error fetching pool schedule:", error)
     }
   }
 
+  // ฟังก์ชันสำหรับสร้างสระใหม่
   const handleCreatePool = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault() // ป้องกันการ refresh หน้า
 
     try {
       const token = localStorage.getItem("token")
       const response = await fetch("https://backend-l7q9.onrender.com/api/admin/pools", {
-        method: "POST",
+      method: "POST", // ใช้ POST method สำหรับสร้างข้อมูลใหม่
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(newPoolData),
+        body: JSON.stringify(newPoolData), // ส่งข้อมูลสระใหม่
       })
 
       if (response.ok) {
+        // แสดงข้อความสำเร็จ
         toast({
           title: "เพิ่มสระสำเร็จ",
           description: "สระใหม่ได้รับการเพิ่มเข้าสู่ระบบแล้ว",
         })
-        setDialogOpen(false)
+        setDialogOpen(false) // ปิด dialog
+        // รีเซ็ตข้อมูลฟอร์ม
         setNewPoolData({
           name: "",
           description: "",
           capacity: 10,
           status: "available",
         })
-        fetchPools()
+        fetchPools() // ดึงข้อมูลสระใหม่
       } else {
         const errorData = await response.json()
+        // แสดงข้อความ error
         toast({
           title: "เพิ่มสระไม่สำเร็จ",
           description: errorData.message || "เกิดข้อผิดพลาด",
@@ -270,6 +301,7 @@ export default function AdminPoolsPage() {
         })
       }
     } catch (error) {
+      // แสดงข้อความ error กรณี network error
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถเพิ่มสระได้",
@@ -278,6 +310,7 @@ export default function AdminPoolsPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับอัปเดตข้อมูลสระ
   const handleUpdatePool = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingPool) return
@@ -321,6 +354,7 @@ export default function AdminPoolsPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับอัปเดตตารางเวลาของสระ
   const handleUpdateSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedPool) return
@@ -360,19 +394,21 @@ export default function AdminPoolsPage() {
     }
   }
 
+  // ฟังก์ชันสำหรับกำหนดสีของ badge ตามสถานะสระ
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800" // สีเขียวสำหรับเปิดใช้งาน
       case "maintenance":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-yellow-100 text-yellow-800" // สีเหลืองสำหรับซ่อมบำรุง
       case "closed":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800" // สีแดงสำหรับปิดใช้งาน
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800" // สีเทาสำหรับสถานะอื่นๆ
     }
   }
 
+  // ฟังก์ชันสำหรับแปลงสถานะเป็นข้อความภาษาไทย
   const getStatusText = (status: string) => {
     switch (status) {
       case "available":
@@ -382,10 +418,11 @@ export default function AdminPoolsPage() {
       case "closed":
         return "ปิดใช้งาน"
       default:
-        return status
+        return status // ถ้าไม่ตรงกับสถานะที่กำหนด ให้แสดงค่าเดิม
     }
   }
 
+  // แสดง loading spinner ขณะโหลดข้อมูล
   if (loading) {
     return (
       <AdminLayout>
@@ -396,6 +433,7 @@ export default function AdminPoolsPage() {
     )
   }
 
+  // ตรวจสอบสิทธิ์ admin ก่อนแสดงหน้า
   if (user?.role !== "admin") {
     return null
   }

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Plus, Trash2, MapPin, Users, CreditCard, CheckCircle, XCircle, AlertCircle, Sparkles, Waves, Crown, Shield, Gift, Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar, Clock, Plus, Trash2, MapPin, Users, CreditCard, CheckCircle, XCircle, AlertCircle, Sparkles, Waves, Crown, Shield, Gift, Check, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -91,6 +91,8 @@ export default function ReservationsPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null)
   const slipInputRef = useRef<HTMLInputElement>(null)
   const [bankAccountNumber, setBankAccountNumber] = useState("")
+  const [poolFullDialog, setPoolFullDialog] = useState(false)
+  const [poolFullMessage, setPoolFullMessage] = useState("")
   
   // Calendar states
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -316,6 +318,7 @@ export default function ReservationsPage() {
       })
       return
     }
+    
 
     setSubmitting(true)
 
@@ -339,6 +342,20 @@ export default function ReservationsPage() {
         })
         window.location.href = "/login"
         return
+      }
+
+      // ตรวจสอบสถานะสระก่อนสร้างการจอง
+      const availabilityResponse = await fetch(`https://backend-l7q9.onrender.com/api/pools/availability?date=${selectedDate}`)
+      const availabilityData = await availabilityResponse.json()
+      
+      if (availabilityResponse.ok && availabilityData.pools) {
+        const selectedPoolAvailability = availabilityData.pools.find(pool => pool.id === parseInt(selectedPool))
+        if (selectedPoolAvailability && selectedPoolAvailability.isFull) {
+          setPoolFullMessage(selectedPoolAvailability.message || "สระว่ายน้ำเต็มแล้ว กรุณาเปลี่ยนวันที่หรือเลือกสระอื่น")
+          setPoolFullDialog(true)
+          setSubmitting(false)
+          return
+        }
       }
 
       const response = await fetch("https://backend-l7q9.onrender.com/api/reservations", {
@@ -1113,6 +1130,39 @@ export default function ReservationsPage() {
           </div>
         </div>
       </div>
+
+      {/* Pool Full Alert Dialog */}
+      <Dialog open={poolFullDialog} onOpenChange={setPoolFullDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-red-600">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              สระว่ายน้ำเต็มแล้ว
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              {poolFullMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setPoolFullDialog(false)}
+            >
+              ตกลง
+            </Button>
+            <Button
+              onClick={() => {
+                setPoolFullDialog(false)
+                setSelectedDate("")
+                setSelectedPool("")
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              เลือกวันใหม่
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </UserLayout>
   )
 }

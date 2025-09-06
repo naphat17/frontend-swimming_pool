@@ -1,230 +1,230 @@
-"use client"
+"use client" // ระบุว่าเป็น Client Component สำหรับ Next.js
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/components/auth-provider"
-import UserLayout from "@/components/user-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar, Users, AlertCircle, CreditCard, Waves, Shield, Bell } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from "react" // นำเข้า hooks สำหรับจัดการ state และ side effects
+import { useAuth } from "@/components/auth-provider" // นำเข้า hook สำหรับจัดการการยืนยันตัวตน
+import UserLayout from "@/components/user-layout" // นำเข้า layout สำหรับผู้ใช้
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card" // นำเข้า components สำหรับการ์ด
+import { Badge } from "@/components/ui/badge" // นำเข้า component สำหรับแสดงป้ายสถานะ
+import { Button } from "@/components/ui/button" // นำเข้า component สำหรับปุ่ม
+import { Calendar, Users, AlertCircle, CreditCard, Waves, Shield, Bell } from "lucide-react" // นำเข้าไอคอนต่างๆ
+import Link from "next/link" // นำเข้า component สำหรับลิงก์ใน Next.js
 
-interface DashboardData {
-  membership: {
-    type: string
-    expires_at: string
-    status: string
-    user_category?: string
-    pay_per_session_price?: number
-    annual_price?: number
-    membership_type_id?: number
-  } | null
-  upcoming_reservations: Array<{
-    id: number
-    reservation_date: string
-    start_time: string
-    end_time: string
-    pool_name: string
-    status: string
+interface DashboardData { // กำหนดโครงสร้างข้อมูลสำหรับ dashboard
+  membership: { // ข้อมูลสมาชิกภาพ
+    type: string // ประเภทสมาชิก
+    expires_at: string // วันหมดอายุ
+    status: string // สถานะสมาชิก
+    user_category?: string // หมวดหมู่ผู้ใช้ (ไม่บังคับ)
+    pay_per_session_price?: number // ราคาต่อครั้ง (ไม่บังคับ)
+    annual_price?: number // ราคารายปี (ไม่บังคับ)
+    membership_type_id?: number // รหัสประเภทสมาชิก (ไม่บังคับ)
+  } | null // อาจเป็น null ถ้าไม่มีสมาชิกภาพ
+  upcoming_reservations: Array<{ // รายการจองที่จะมาถึง
+    id: number // รหัสการจอง
+    reservation_date: string // วันที่จอง
+    start_time: string // เวลาเริ่ม
+    end_time: string // เวลาสิ้นสุด
+    pool_name: string // ชื่อสระว่ายน้ำ
+    status: string // สถานะการจอง
   }>
-  notifications: Array<{
-    id: number
-    title: string
-    message: string
-    created_at: string
-    is_read: boolean
+  notifications: Array<{ // รายการการแจ้งเตือน
+    id: number // รหัสการแจ้งเตือน
+    title: string // หัวข้อ
+    message: string // ข้อความ
+    created_at: string // วันที่สร้าง
+    is_read: boolean // สถานะการอ่าน
   }>
-  usage_stats: {
-    total_reservations: number
-    this_month_reservations: number
+  usage_stats: { // สถิติการใช้งาน
+    total_reservations: number // จำนวนการจองทั้งหมด
+    this_month_reservations: number // จำนวนการจองเดือนนี้
   }
 }
 
-export default function DashboardPage() {
-  const { user } = useAuth()
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function DashboardPage() { // ฟังก์ชันหลักของหน้า Dashboard
+  const { user } = useAuth() // ดึงข้อมูลผู้ใช้จาก context
+  const [data, setData] = useState<DashboardData | null>(null) // state สำหรับเก็บข้อมูล dashboard
+  const [loading, setLoading] = useState(true) // state สำหรับสถานะการโหลด
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem("token")
-        const response = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
+  useEffect(() => { // Hook สำหรับดึงข้อมูลเมื่อ component โหลด
+    const fetchDashboard = async () => { // ฟังก์ชันสำหรับดึงข้อมูล dashboard
+      try { // เริ่มต้น try-catch block
+        const token = localStorage.getItem("token") // ดึง token จาก localStorage
+        const response = await fetch("https://backend-l7q9.onrender.com/api/user/dashboard", { // เรียก API
+          headers: { Authorization: `Bearer ${token}` }, // ส่ง token ใน header
         })
 
-        if (response.ok) {
-          const dashboardData = await response.json()
-          setData(dashboardData)
+        if (response.ok) { // ตรวจสอบว่า response สำเร็จ
+          const dashboardData = await response.json() // แปลง response เป็น JSON
+          setData(dashboardData) // อัพเดท state ด้วยข้อมูลที่ได้
         }
-      } catch (error) {
-        console.error("Error fetching dashboard:", error)
-      } finally {
-        setLoading(false)
+      } catch (error) { // จับ error ที่เกิดขึ้น
+        console.error("Error fetching dashboard:", error) // แสดง error ใน console
+      } finally { // block ที่จะทำงานเสมอ
+        setLoading(false) // ตั้งสถานะการโหลดเป็น false
       }
     }
 
-    fetchDashboard()
-  }, [])
+    fetchDashboard() // เรียกใช้ฟังก์ชันดึงข้อมูล
+  }, []) // dependency array ว่าง หมายถึงทำงานครั้งเดียวเมื่อ component mount
 
-  if (loading) {
-    return (
-      <UserLayout>
+  if (loading) { // ตรวจสอบสถานะการโหลด
+    return ( // ส่งคืน JSX สำหรับหน้าโหลด
+      <UserLayout> {/* Layout หลักสำหรับผู้ใช้ */}
         <div
-          className="min-h-screen bg-cover bg-center relative flex items-center justify-center"
-          style={{ backgroundImage: "url('/555.png')" }}
+          className="min-h-screen bg-cover bg-center relative flex items-center justify-center" // คลาส CSS สำหรับพื้นหลังและการจัดตำแหน่ง
+          style={{ backgroundImage: "url('/555.png')" }} // ตั้งค่าภาพพื้นหลัง
         >
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-white text-lg">กำลังโหลด...</p>
+          <div className="absolute inset-0 bg-black/30" /> {/* overlay สีดำโปร่งใส */}
+          <div className="relative z-10 text-center"> {/* container สำหรับเนื้อหา */}
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div> {/* ไอคอนหมุนแสดงการโหลด */}
+            <p className="text-white text-lg">กำลังโหลด...</p> {/* ข้อความแสดงสถานะ */}
           </div>
         </div>
       </UserLayout>
     )
   }
 
-  const getMembershipStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800"
-      case "expired":
-        return "bg-red-100 text-red-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+  const getMembershipStatusColor = (status: string) => { // ฟังก์ชันกำหนดสีตามสถานะสมาชิก
+    switch (status) { // ตรวจสอบสถานะ
+      case "active": // กรณีสถานะใช้งานได้
+        return "bg-green-100 text-green-800" // ส่งคืนคลาสสีเขียว
+      case "expired": // กรณีสถานะหมดอายุ
+        return "bg-red-100 text-red-800" // ส่งคืนคลาสสีแดง
+      case "pending": // กรณีสถานะรอดำเนินการ
+        return "bg-yellow-100 text-yellow-800" // ส่งคืนคลาสสีเหลือง
+      default: // กรณีอื่นๆ
+        return "bg-gray-100 text-gray-800" // ส่งคืนคลาสสีเทา
     }
   }
 
-  const getReservationStatusColor = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return "bg-green-100 text-green-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "cancelled":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+  const getReservationStatusColor = (status: string) => { // ฟังก์ชันกำหนดสีตามสถานะการจอง
+    switch (status) { // ตรวจสอบสถานะ
+      case "confirmed": // กรณียืนยันแล้ว
+        return "bg-green-100 text-green-800" // ส่งคืนคลาสสีเขียว
+      case "pending": // กรณีรอยืนยัน
+        return "bg-yellow-100 text-yellow-800" // ส่งคืนคลาสสีเหลือง
+      case "cancelled": // กรณียกเลิก
+        return "bg-red-100 text-red-800" // ส่งคืนคลาสสีแดง
+      default: // กรณีอื่นๆ
+        return "bg-gray-100 text-gray-800" // ส่งคืนคลาสสีเทา
     }
   }
 
-  return (
-    <UserLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative p-6">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+  return ( // ส่งคืน JSX สำหรับหน้า dashboard
+    <UserLayout> {/* Layout หลักสำหรับผู้ใช้ */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative p-6"> {/* container หลักพร้อมพื้นหลัง gradient */}
+        {/* Animated background elements */} {/* องค์ประกอบพื้นหลังแบบเคลื่อนไหว */}
+        <div className="absolute inset-0 overflow-hidden"> {/* container สำหรับพื้นหลังแบบเคลื่อนไหว */}
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div> {/* วงกลมเบลอด้านบนขวา */}
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div> {/* วงกลมเบลอด้านล่างซ้าย */}
         </div>
         
-        <div className="relative z-10">
-          {/* Welcome Header Card */}
-          <Card className="mb-8 shadow-2xl border-0 bg-gradient-to-r from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-lg opacity-30 animate-pulse"></div>
-                  <img src="/LOGO.png" alt="Logo" className="relative h-20 w-20 shadow-lg" />
+        <div className="relative z-10"> {/* container เนื้อหาหลักที่อยู่เหนือพื้นหลัง */}
+          {/* Welcome Header Card */} {/* การ์ดส่วนหัวต้อนรับ */}
+          <Card className="mb-8 shadow-2xl border-0 bg-gradient-to-r from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]"> {/* การ์ดหลักพร้อมเอฟเฟกต์ */}
+            <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+              <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-6"> {/* container แบบ responsive */}
+                <div className="relative"> {/* container สำหรับโลโก้ */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-lg opacity-30 animate-pulse"></div> {/* เอฟเฟกต์เรืองแสงรอบโลโก้ */}
+                  <img src="/LOGO.png" alt="Logo" className="relative h-20 w-20 shadow-lg" /> {/* รูปโลโก้ */}
                 </div>
-                <div className="text-center md:text-left">
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                    ยินดีต้อนรับ, {user?.first_name} {user?.last_name}
+                <div className="text-center md:text-left"> {/* container สำหรับข้อความ */}
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2"> {/* หัวข้อหลักพร้อม gradient text */}
+                    ยินดีต้อนรับ, {user?.first_name} {user?.last_name} {/* แสดงชื่อผู้ใช้ */}
                   </h1>
-                  <p className="text-xl text-gray-600 font-medium">ภาพรวมการใช้งานระบบสระว่ายน้ำโรจนากร</p>
-                  <div className="mt-3 flex items-center justify-center md:justify-start space-x-2">
-                    <Waves className="h-5 w-5 text-blue-500 animate-bounce" />
-                    <span className="text-sm text-blue-600 font-medium">พร้อมให้บริการ 24/7</span>
+                  <p className="text-xl text-gray-600 font-medium">ภาพรวมการใช้งานระบบสระว่ายน้ำโรจนากร</p> {/* คำอธิบายระบบ */}
+                  <div className="mt-3 flex items-center justify-center md:justify-start space-x-2"> {/* container สำหรับสถานะบริการ */}
+                    <Waves className="h-5 w-5 text-blue-500 animate-bounce" /> {/* ไอคอนคลื่นแบบเคลื่อนไหว */}
+                    <span className="text-sm text-blue-600 font-medium">พร้อมให้บริการ 24/7</span> {/* ข้อความสถานะบริการ */}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1">
-            <CardContent className="p-8">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-blue-700 transition-colors">สถานะสมาชิก</p>
-                  <div>
-                    {data?.membership ? (
-                      <Badge className={`text-lg px-4 py-2 shadow-lg ${getMembershipStatusColor(data.membership.status)}`}>
-                        {data.membership.status === "active"
-                          ? "ใช้งานได้"
-                          : data.membership.status === "expired"
-                            ? "หมดอายุ"
-                            : "รอดำเนินการ"}
+          {/* Stats Cards */} {/* การ์ดแสดงสถิติ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"> {/* grid layout สำหรับการ์ดสถิติ */}
+            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1"> {/* การ์ดสถานะสมาชิกพร้อมเอฟเฟกต์ hover */}
+            <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+              <div className="flex items-center"> {/* container แนวนอนสำหรับเนื้อหา */}
+                <div className="flex-1"> {/* ส่วนข้อความที่ขยายเต็มพื้นที่ */}
+                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-blue-700 transition-colors">สถานะสมาชิก</p> {/* หัวข้อการ์ด */}
+                  <div> {/* container สำหรับ badge */}
+                    {data?.membership ? ( // ตรวจสอบว่ามีข้อมูลสมาชิกหรือไม่
+                      <Badge className={`text-lg px-4 py-2 shadow-lg ${getMembershipStatusColor(data.membership.status)}`}> {/* badge แสดงสถานะพร้อมสีตามสถานะ */}
+                        {data.membership.status === "active" // ตรวจสอบสถานะและแสดงข้อความภาษาไทย
+                          ? "ใช้งานได้" // กรณีใช้งานได้
+                          : data.membership.status === "expired" // กรณีหมดอายุ
+                            ? "หมดอายุ" // ข้อความหมดอายุ
+                            : "รอดำเนินการ"} {/* กรณีอื่นๆ */}
                       </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-lg px-4 py-2 shadow-lg">ไม่มีสมาชิกภาพ</Badge>
+                    ) : ( // กรณีไม่มีสมาชิกภาพ
+                      <Badge variant="outline" className="text-lg px-4 py-2 shadow-lg">ไม่มีสมาชิกภาพ</Badge> // badge สำหรับไม่มีสมาชิกภาพ
                     )}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <CreditCard className="h-8 w-8 text-blue-600 group-hover:text-blue-700" />
+                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300"> {/* container สำหรับไอคอนพร้อมเอฟเฟกต์ */}
+                  <CreditCard className="h-8 w-8 text-blue-600 group-hover:text-blue-700" /> {/* ไอคอนบัตรเครดิต */}
                 </div>
               </div>
             </CardContent>
             </Card>
 
-            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-green-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:-rotate-1">
-            <CardContent className="p-8">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-green-700 transition-colors">การจองที่จะมาถึง</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{data?.upcoming_reservations?.length || 0}</p>
+            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-green-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:-rotate-1"> {/* การ์ดจำนวนการจองที่จะมาถึงพร้อมเอฟเฟกต์ hover */}
+            <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+              <div className="flex items-center"> {/* container แนวนอนสำหรับเนื้อหา */}
+                <div className="flex-1"> {/* ส่วนข้อความที่ขยายเต็มพื้นที่ */}
+                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-green-700 transition-colors">การจองที่จะมาถึง</p> {/* หัวข้อการ์ด */}
+                  <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{data?.upcoming_reservations?.length || 0}</p> {/* ตัวเลขจำนวนการจองที่จะมาถึงพร้อม gradient text */}
                 </div>
-                <div className="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Calendar className="h-8 w-8 text-green-600 group-hover:text-green-700" />
-                </div>
-              </div>
-            </CardContent>
-            </Card>
-
-            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-purple-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1">
-            <CardContent className="p-8">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-purple-700 transition-colors">การใช้งานเดือนนี้</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{data?.usage_stats?.this_month_reservations || 0}</p>
-                </div>
-                <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-8 w-8 text-purple-600 group-hover:text-purple-700" />
+                <div className="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300"> {/* container สำหรับไอคอนพร้อมเอฟเฟกต์ */}
+                  <Calendar className="h-8 w-8 text-green-600 group-hover:text-green-700" /> {/* ไอคอนปฏิทิน */}
                 </div>
               </div>
             </CardContent>
             </Card>
 
-            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:-rotate-1">
-            <CardContent className="p-8">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-orange-700 transition-colors">การแจ้งเตือน</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                    {data?.notifications?.filter((n) => !n.is_read).length || 0}
+            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-purple-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1"> {/* การ์ดการใช้งานเดือนนี้พร้อมเอฟเฟกต์ hover */}
+            <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+              <div className="flex items-center"> {/* container แนวนอนสำหรับเนื้อหา */}
+                <div className="flex-1"> {/* ส่วนข้อความที่ขยายเต็มพื้นที่ */}
+                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-purple-700 transition-colors">การใช้งานเดือนนี้</p> {/* หัวข้อการ์ด */}
+                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{data?.usage_stats?.this_month_reservations || 0}</p> {/* ตัวเลขการใช้งานเดือนนี้พร้อม gradient text */}
+                </div>
+                <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300"> {/* container สำหรับไอคอนพร้อมเอฟเฟกต์ */}
+                  <Users className="h-8 w-8 text-purple-600 group-hover:text-purple-700" /> {/* ไอคอนผู้ใช้ */}
+                </div>
+              </div>
+            </CardContent>
+            </Card>
+
+            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:-rotate-1"> {/* การ์ดการแจ้งเตือนที่ยังไม่อ่านพร้อมเอฟเฟกต์ hover */}
+            <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+              <div className="flex items-center"> {/* container แนวนอนสำหรับเนื้อหา */}
+                <div className="flex-1"> {/* ส่วนข้อความที่ขยายเต็มพื้นที่ */}
+                  <p className="text-lg font-semibold text-gray-600 mb-3 group-hover:text-orange-700 transition-colors">การแจ้งเตือน</p> {/* หัวข้อการ์ด */}
+                  <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent"> {/* ตัวเลขการแจ้งเตือนที่ยังไม่อ่านพร้อม gradient text */}
+                    {data?.notifications?.filter((n) => !n.is_read).length || 0} {/* กรองเฉพาะการแจ้งเตือนที่ยังไม่อ่าน */}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Bell className="h-8 w-8 text-orange-600 group-hover:text-orange-700 group-hover:animate-bounce" />
+                <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300"> {/* container สำหรับไอคอนพร้อมเอฟเฟกต์ */}
+                  <Bell className="h-8 w-8 text-orange-600 group-hover:text-orange-700 group-hover:animate-bounce" /> {/* ไอคอนกระดิ่งพร้อมเอฟเฟกต์เด้ง */}
                 </div>
               </div>
             </CardContent>
             </Card>
-          </div>
+          </div> {/* ปิด grid สำหรับ stats cards */}
 
-          {/* Detailed Sections */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Membership Status */}
-            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500">
-              <CardContent className="p-8">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 flex items-center">
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-xl mr-3 shadow-lg">
-                    <CreditCard className="h-6 w-6 text-white" />
+          {/* Detailed Sections */} {/* ส่วนรายละเอียด */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* grid layout สำหรับส่วนรายละเอียด */}
+            {/* Membership Status */} {/* ส่วนสถานะสมาชิกภาพ */}
+            <Card className="group shadow-xl border-0 bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-sm hover:shadow-2xl transition-all duration-500"> {/* การ์ดสถานะสมาชิกภาพพร้อมเอฟเฟกต์ */}
+              <CardContent className="p-8"> {/* เนื้อหาการ์ดพร้อม padding */}
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 flex items-center"> {/* หัวข้อหลักพร้อม gradient text */}
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-xl mr-3 shadow-lg"> {/* container สำหรับไอคอนพร้อม gradient background */}
+                    <CreditCard className="h-6 w-6 text-white" /> {/* ไอคอนบัตรเครดิต */}
                   </div>
-                  สถานะสมาชิกภาพ
+                  สถานะสมาชิกภาพ {/* ข้อความหัวข้อ */}
                 </h2>
                 {data?.membership ? (
                   <div className="space-y-4">
@@ -378,9 +378,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-
-
-
+          
           {/* Recent Notifications */}
           {data?.notifications && data.notifications.length > 0 && (
             <Card className="shadow-2xl border-0 bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-sm hover:shadow-3xl transition-all duration-500">
